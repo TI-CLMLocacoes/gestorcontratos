@@ -61,6 +61,9 @@
                  <a href="#" onclick="showView('projetos')" class="nav-link block py-2.5 px-4 rounded transition duration-200 hover:bg-gray-700">
                     <i class="fas fa-project-diagram mr-2"></i>Projetos
                 </a>
+                <a href="#" onclick="showView('servicos')" class="nav-link block py-2.5 px-4 rounded transition duration-200 hover:bg-gray-700">
+                    <i class="fas fa-concierge-bell mr-2"></i>Tipos de Serviço
+                </a>
                 <a href="#" onclick="showView('contratos')" class="nav-link block py-2.5 px-4 rounded transition duration-200 hover:bg-gray-700">
                     <i class="fas fa-file-signature mr-2"></i>Contratos
                 </a>
@@ -156,6 +159,7 @@
                 <div id="view-projetos" class="view hidden"></div>
                 <div id="view-analistas" class="view hidden"></div>
                 <div id="view-atividades" class="view hidden"></div>
+                <div id="view-servicos" class="view hidden"></div>
             </main>
         </div>
     </div>
@@ -181,6 +185,7 @@ const state = {
     projetos: [],
     analistas: [],
     atividades: [],
+    servicos: [],
     tiposContrato: [
         'Serviços de TI',
         'Sistemas Corporativos',
@@ -239,6 +244,9 @@ function loadState() {
                 'Recursos Humanos'
             ];
         }
+        if (!state.servicos) { // Garante que a nova entidade exista
+            state.servicos = [];
+        }
     }
 }
 
@@ -265,6 +273,7 @@ function showView(viewName) {
         case 'projetos': renderEntityListView('projetos'); break;
         case 'analistas': renderEntityListView('analistas'); break;
         case 'atividades': renderEntityListView('atividades'); break;
+        case 'servicos': renderEntityListView('servicos'); break;
     }
 }
 
@@ -321,17 +330,23 @@ const entityConfig = {
         fields: { nome: "Nome", fornecedorId: "Fornecedor", valorHoraEspecifico: "Valor Hora (R$)" },
         columns: item => `<td>${item.nome}</td><td>${getFornecedorName(item.fornecedorId)}</td><td>${formatCurrency(item.valorHoraEspecifico)}</td>`
     },
+    servicos: {
+        title: "Tipos de Serviço",
+        fields: { nome: "Nome do Serviço", descricao: "Descrição" },
+        columns: item => `<td>${item.nome}</td><td class="truncate max-w-md" title="${item.descricao}">${item.descricao}</td>`
+    },
     atividades: {
         title: "Atividades",
-        fields: { projetoId: "Projeto", analistaId: "Analista", descricao: "Descrição", data: "Data", horaInicio: "Hora Início", horaTermino: "Hora Término" },
+        fields: { projetoId: "Projeto", analistaId: "Analista", descricao: "Descrição", servicoId: "Serviço", data: "Data", horaInicio: "Hora Início", horaTermino: "Hora Término" },
         columns: item => `
             <td class="whitespace-nowrap">${getProjetoName(item.projetoId)}</td>
             <td class="whitespace-nowrap">${getAnalistaName(item.analistaId)}</td>
             <td class="truncate max-w-sm" title="${item.descricao}">${item.descricao}</td>
+            <td class="whitespace-nowrap">${getServicoName(item.servicoId)}</td>
             <td class="whitespace-nowrap">${formatDate(item.data)}</td>
             <td class="whitespace-nowrap text-center">${item.horaInicio}</td>
             <td class="whitespace-nowrap text-center">${item.horaTermino}</td>
-            <td class="whitespace-nowrap text-center">${item.duracao.toFixed(2)}h</td>
+            <td class="whitespace-nowrap text-center">${(item.duracao || 0).toFixed(2)}h</td>
             <td class="whitespace-nowrap">${formatCurrency(item.custo)}</td>
         `,
         extraHeaders: '<th>Duração</th><th>Custo</th>'
@@ -455,6 +470,8 @@ function createSelectField(key, label, value, customOptions = null, extraAttribu
         options = state.projetos.map(p => ({ id: p.id, nome: p.nome }));
     } else if (key === 'analistaId') {
         options = state.analistas.map(a => ({ id: a.id, nome: a.nome }));
+    } else if (key === 'servicoId') {
+        options = state.servicos.map(s => ({ id: s.id, nome: s.nome }));
     }
 
     const optionsHtml = options.map(o => `<option value="${o.id}" ${o.id === value ? 'selected' : ''}>${o.nome}</option>`).join('');
@@ -558,6 +575,7 @@ function getFornecedorName(id) { return state.fornecedores.find(f => f.id === id
 function getContratoName(id) { return state.contratos.find(c => c.id === id)?.numeroContrato || 'N/A'; }
 function getProjetoName(id) { return state.projetos.find(p => p.id === id)?.nome || 'N/A'; }
 function getAnalistaName(id) { return state.analistas.find(a => a.id === id)?.nome || 'N/A'; }
+function getServicoName(id) { return state.servicos.find(s => s.id === id)?.nome || 'N/A'; }
 
 function formatCurrency(value) {
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value || 0);
