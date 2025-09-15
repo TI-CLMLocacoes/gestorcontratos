@@ -323,7 +323,10 @@ const entityConfig = {
     projetos: {
         title: "Projetos",
         fields: { nome: "Nome", contratoId: "Contrato", status: "Status" },
-        columns: item => `<td>${item.nome}</td><td>${getContratoName(item.contratoId)}</td><td>${item.status}</td>`
+        columns: item => {
+            const contratoDesc = state.contratos.find(c => c.id === item.contratoId)?.descricao || 'N/A';
+            return `<td>${item.nome}</td><td class="truncate max-w-xs" title="${contratoDesc}">${contratoDesc}</td><td>${item.status}</td>`;
+        }
     },
     analistas: {
         title: "Analistas",
@@ -468,7 +471,7 @@ function createSelectField(key, label, value, customOptions = null, extraAttribu
     } else if (key === 'fornecedorId') {
         options = state.fornecedores.map(f => ({ id: f.id, nome: f.nome }));
     } else if (key === 'contratoId') {
-        options = state.contratos.map(c => ({ id: c.id, nome: c.numeroContrato }));
+        options = state.contratos.map(c => ({ id: c.id, nome: `${c.numeroContrato} - ${c.descricao}` }));
     } else if (key === 'projetoId') {
         options = state.projetos.map(p => ({ id: p.id, nome: p.nome }));
     } else if (key === 'analistaId') {
