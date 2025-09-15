@@ -329,6 +329,8 @@ const entityConfig = {
             <td class="whitespace-nowrap">${getAnalistaName(item.analistaId)}</td>
             <td class="truncate max-w-sm" title="${item.descricao}">${item.descricao}</td>
             <td class="whitespace-nowrap">${formatDate(item.data)}</td>
+            <td class="whitespace-nowrap text-center">${item.horaInicio}</td>
+            <td class="whitespace-nowrap text-center">${item.horaTermino}</td>
             <td class="whitespace-nowrap text-center">${item.duracao.toFixed(2)}h</td>
             <td class="whitespace-nowrap">${formatCurrency(item.custo)}</td>
         `,
@@ -653,4 +655,3 @@ function renderDashboard() {
 </script>
 </body>
 </html>
-
