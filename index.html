@@ -21,9 +21,40 @@
         .table-auto td:last-child { width: 80px; text-align: center; }
         .progress-bar-bg { background-color: #e5e7eb; }
         .progress-bar { transition: width 0.5s ease-in-out; }
+        #loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(255, 255, 255, 0.9);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            flex-direction: column;
+            padding: 1rem;
+        }
+        .spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border-left-color: #09f;
+            animation: spin 1s ease infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
     </style>
 </head>
 <body class="bg-gray-100">
+
+    <div id="loading-overlay">
+        <div class="spinner"></div>
+        <p class="mt-4 text-gray-600">A carregar aplicação...</p>
+    </div>
 
     <div class="flex h-screen">
         <!-- Sidebar -->
@@ -88,396 +119,520 @@
     <!-- MODAL Genérico -->
     <div id="modal" class="fixed inset-0 z-50 items-center justify-center hidden modal-backdrop"><div class="bg-white rounded-lg shadow-xl w-full max-w-lg p-6 modal-content transform scale-95"><div class="flex justify-between items-center mb-4"><h3 id="modal-title" class="text-2xl font-bold text-gray-800"></h3><button onclick="closeModal()" class="text-gray-500 hover:text-gray-800">&times;</button></div><div id="modal-body"></div></div></div>
 
-<script>
-// ---------- CONFIGURAÇÃO INICIAL E ESTADO DA APLICAÇÃO ----------
-const state = {
-    fornecedores: [], contratos: [], projetos: [], analistas: [], atividades: [], servicos: [],
-    tiposContrato: ['Serviços de TI', 'Sistemas Corporativos', 'Segurança da Informação', 'Softwares Especializados', 'Softwares Operacionais', 'Aplicações Web', 'CRM', 'Recursos Humanos']
+<script type="module">
+    // ---------- IMPORTS E CONFIGURAÇÃO DO FIREBASE ----------
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getFirestore, collection, onSnapshot, addDoc, doc, setDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+// Import the functions you need from the SDKs you need
+import { initializeApp } from "firebase/app";
+import { getAnalytics } from "firebase/analytics";
+// TODO: Add SDKs for Firebase products that you want to use
+// https://firebase.google.com/docs/web/setup#available-libraries
+
+// Your web app's Firebase configuration
+// For Firebase JS SDK v7.20.0 and later, measurementId is optional
+const firebaseConfig = {
+  apiKey: "AIzaSyDFc5hzSOjBR9Mmbolc1edJFTQm3BKHFpw",
+  authDomain: "gestorcontratosclm.firebaseapp.com",
+  projectId: "gestorcontratosclm",
+  storageBucket: "gestorcontratosclm.firebasestorage.app",
+  messagingSenderId: "538940293921",
+  appId: "1:538940293921:web:a275a88061661fde98f460",
+  measurementId: "G-JY1B4YX6ZJ"
 };
 
-document.addEventListener('DOMContentLoaded', () => {
-    loadState();
-    setupEventListeners();
-    showView('dashboard');
-});
-
-function setupEventListeners() {
-    document.getElementById('menu-button').addEventListener('click', () => document.getElementById('sidebar').classList.toggle('-translate-x-full'));
-    document.querySelectorAll('.nav-link').forEach(link => {
-        link.addEventListener('click', (e) => {
-            document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('bg-gray-700'));
-            e.currentTarget.classList.add('bg-gray-700');
-            const sidebar = document.getElementById('sidebar');
-            if (!sidebar.classList.contains('md:relative')) sidebar.classList.add('-translate-x-full');
-        });
-    });
-}
-
-// ---------- GESTÃO DE ESTADO (LOCALSTORAGE) ----------
-function saveState() { localStorage.setItem('gestorTiState', JSON.stringify(state)); }
-function loadState() {
-    const savedState = localStorage.getItem('gestorTiState');
-    if (savedState) Object.assign(state, JSON.parse(savedState));
-    // Default values for new structures if they don't exist in saved data
-    if (!state.tiposContrato || state.tiposContrato.length === 0) state.tiposContrato = ['Serviços de TI', 'Sistemas Corporativos', 'Segurança da Informação', 'Softwares Especializados', 'Softwares Operacionais', 'Aplicações Web', 'CRM', 'Recursos Humanos'];
-    if (!state.servicos) state.servicos = [];
-}
-function generateId() { return Date.now().toString(36) + Math.random().toString(36).substr(2); }
-
-// ---------- GESTÃO DE VIEWS E MODAIS ----------
-function showView(viewName, detailsId = null) {
-    document.querySelectorAll('.view').forEach(view => view.classList.add('hidden'));
-    const activeView = document.getElementById(`view-${viewName}`);
-    activeView.classList.remove('hidden');
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const analytics = getAnalytics(app);
     
-    // Apenas limpa o HTML para views que são geradas dinamicamente
-    if (viewName !== 'dashboard') {
-        activeView.innerHTML = ''; 
-    }
+    // VERIFICAÇÃO DA CONFIGURAÇÃO ANTES DE INICIALIZAR
+    if (firebaseConfig.apiKey.startsWith("COLE_AQUI")) {
+        const loadingOverlay = document.getElementById('loading-overlay');
+        loadingOverlay.innerHTML = `
+            <div class="text-center p-4 bg-white rounded-lg shadow-lg">
+                <i class="fas fa-exclamation-triangle text-red-500 text-4xl mb-4"></i>
+                <h2 class="text-2xl font-bold text-gray-800 mb-2">Configuração do Firebase Incompleta</h2>
+                <p class="text-gray-600">Por favor, siga o guia <strong>como_configurar_firebase.md</strong> para criar o seu projeto Firebase e cole as suas chaves de configuração no ficheiro HTML para que a aplicação possa funcionar.</p>
+            </div>
+        `;
+    } else {
+        // Inicialização do Firebase
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const auth = getAuth(app);
 
-    switch(viewName) {
-        case 'dashboard': renderDashboard(); break;
-        case 'details': renderDetailsView(detailsId.entity, detailsId.id); break;
-        default: renderEntityListView(viewName); break;
-    }
-}
-
-function openModal(title, formHtml) {
-    document.getElementById('modal-title').innerText = title;
-    document.getElementById('modal-body').innerHTML = formHtml;
-    const modal = document.getElementById('modal');
-    modal.classList.remove('hidden');
-    modal.classList.add('flex');
-    setTimeout(() => {
-        modal.firstElementChild.classList.add('opacity-100');
-        modal.firstElementChild.firstElementChild.classList.remove('scale-95');
-    }, 10);
-}
-
-function closeModal() {
-    const modal = document.getElementById('modal');
-    modal.firstElementChild.classList.remove('opacity-100');
-    modal.firstElementChild.firstElementChild.classList.add('scale-95');
-    setTimeout(() => { modal.classList.add('hidden'); modal.classList.remove('flex'); }, 300);
-}
-
-// ---------- CONFIGURAÇÃO E RENDERIZAÇÃO DAS ENTIDADES ----------
-const entityConfig = {
-    fornecedores: { title: "Fornecedores", fields: { nome: "Nome", cnpj: "CNPJ", contato: "Contato" }, columns: item => `<td><a href="#" class="text-blue-600 hover:underline" onclick="showView('details', {entity: 'fornecedores', id: '${item.id}'})">${item.nome}</a></td><td>${item.cnpj}</td><td>${item.contato}</td>` },
-    contratos: { title: "Contratos", fields: { numeroContrato: "Nº Contrato", descricao: "Descrição", tipoContrato: "Tipo", fornecedorId: "Fornecedor", dataContratacao: "Contratação", periodo: "Período", valorMensal: "Valor Mensal" }, columns: item => `<td class="whitespace-nowrap"><a href="#" class="text-blue-600 hover:underline" onclick="showView('details', {entity: 'contratos', id: '${item.id}'})">${item.numeroContrato}</a></td><td class="truncate max-w-xs" title="${item.descricao}">${item.descricao}</td><td class="whitespace-nowrap">${item.tipoContrato || 'N/A'}</td><td class="whitespace-nowrap">${getFornecedorName(item.fornecedorId)}</td><td class="whitespace-nowrap">${formatDate(item.dataContratacao)}</td><td class="whitespace-nowrap text-center">${item.periodo}</td><td class="whitespace-nowrap">${formatCurrency(item.valorMensal)}</td><td class="whitespace-nowrap">${formatDate(DATE_ADD(item.dataContratacao, item.periodo))}</td>`, extraHeaders: '<th>Vencimento</th>' },
-    projetos: { title: "Projetos", fields: { nome: "Nome", contratoId: "Contrato", status: "Status", orcamentoTotal: "Orçamento (R$)", bancoHoras: "Horas Contratadas" }, optionalFields: ['orcamentoTotal', 'bancoHoras'], columns: item => { const {consumedCost, consumedHours} = calculateProjectConsumption(item.id); const orcamento = parseFloat(item.orcamentoTotal) || 0; const horas = parseFloat(item.bancoHoras) || 0; const costPercent = orcamento > 0 ? (consumedCost / orcamento * 100).toFixed(0) : 0; const hoursPercent = horas > 0 ? (consumedHours / horas * 100).toFixed(0) : 0; return `<td><a href="#" class="text-blue-600 hover:underline" onclick="showView('details', {entity: 'projetos', id: '${item.id}'})">${item.nome}</a></td><td class="truncate max-w-xs" title="${getContratoDesc(item.contratoId)}">${getContratoDesc(item.contratoId)}</td><td>${item.status}</td><td>${renderProgressBar(costPercent, `${formatCurrency(consumedCost)} / ${formatCurrency(orcamento)}`)}</td><td>${renderProgressBar(hoursPercent, `${consumedHours.toFixed(2)}h / ${horas.toFixed(2)}h`)}</td>`; }, extraHeaders: '<th>Consumo Orçamento</th><th>Consumo Horas</th>' },
-    analistas: { title: "Analistas", fields: { nome: "Nome", fornecedorId: "Fornecedor", valorHoraEspecifico: "Valor Hora (R$)" }, columns: item => `<td>${item.nome}</td><td>${getFornecedorName(item.fornecedorId)}</td><td>${formatCurrency(item.valorHoraEspecifico)}</td>` },
-    servicos: { title: "Serviços", fields: { nome: "Nome do Serviço", descricao: "Descrição", contratoId: "Contrato" }, columns: item => `<td>${item.nome}</td><td class="truncate max-w-md" title="${item.descricao}">${item.descricao}</td><td class="truncate max-w-xs" title="${getContratoDesc(item.contratoId)}">${getContratoDesc(item.contratoId)}</td>` },
-    atividades: { title: "Atividades", fields: { projetoId: "Projeto", analistaId: "Analista", servicoId: "Serviço", descricao: "Descrição", data: "Data", horaInicio: "Hora Início", horaTermino: "Hora Término", valorEspecifico: "Valor Específico (R$)" }, optionalFields: ['analistaId', 'horaInicio', 'horaTermino', 'valorEspecifico'], columns: item => `<td class="whitespace-nowrap">${getProjetoName(item.projetoId)}</td><td class="whitespace-nowrap">${getAnalistaName(item.analistaId)}</td><td class="whitespace-nowrap">${getServicoName(item.servicoId)}</td><td class="truncate max-w-sm" title="${item.descricao}">${item.descricao}</td><td class="whitespace-nowrap">${formatDate(item.data)}</td><td class="whitespace-nowrap text-center">${item.horaInicio || '-'}</td><td class="whitespace-nowrap text-center">${item.horaTermino || '-'}</td><td class="whitespace-nowrap text-center">${formatCurrency(item.valorEspecifico)}</td><td class="whitespace-nowrap text-center">${(item.duracao || 0).toFixed(2)}h</td><td class="whitespace-nowrap">${formatCurrency(item.custo)}</td>`, extraHeaders: '<th>Duração</th><th>Custo</th>' }
-};
-
-function renderEntityListView(entityName) {
-    const config = entityConfig[entityName];
-    const view = document.getElementById(`view-${entityName}`);
-    
-    let tableHeaders = Object.values(config.fields).map(h => `<th>${h}</th>`).join('');
-    if (config.extraHeaders) tableHeaders += config.extraHeaders;
-
-    view.innerHTML = `<div class="flex justify-between items-center mb-6"><h2 class="text-3xl font-bold text-gray-800">${config.title}</h2><div class="flex space-x-2"><button onclick="exportToCSV('${entityName}')" class="bg-green-600 text-white px-4 py-2 rounded-lg shadow hover:bg-green-700 transition duration-300"><i class="fas fa-file-csv mr-2"></i> Exportar</button><button onclick="showForm('${entityName}')" class="bg-blue-600 text-white px-4 py-2 rounded-lg shadow hover:bg-blue-700 transition duration-300"><i class="fas fa-plus mr-2"></i> Adicionar</button></div></div><div class="bg-white rounded-lg shadow overflow-x-auto"><table class="w-full table-auto"><thead class="bg-gray-50 border-b-2 border-gray-200"><tr>${tableHeaders}<th>Ações</th></tr></thead><tbody id="${entityName}-table-body"></tbody></table></div>`;
-    const tableBody = document.getElementById(`${entityName}-table-body`);
-    tableBody.innerHTML = '';
-    state[entityName].forEach(item => {
-        const row = document.createElement('tr');
-        row.className = 'border-b hover:bg-gray-50';
-        row.innerHTML = `${config.columns(item)}<td class="text-center"><button onclick="showForm('${entityName}', '${item.id}')" class="text-blue-500 hover:text-blue-700 p-2"><i class="fas fa-edit"></i></button><button onclick="deleteItem('${entityName}', '${item.id}')" class="text-red-500 hover:text-red-700 p-2"><i class="fas fa-trash"></i></button></td>`;
-        tableBody.appendChild(row);
-    });
-}
-
-function renderProgressBar(percentage, text) {
-    let color = 'bg-green-500';
-    if (percentage > 75) color = 'bg-yellow-500';
-    if (percentage >= 100) color = 'bg-red-500';
-    return `<div class="w-full progress-bar-bg rounded-full h-5 relative text-white text-xs flex items-center justify-center" title="${text}"><div class="absolute left-0 top-0 h-full rounded-full progress-bar ${color}" style="width: ${Math.min(percentage, 100)}%;"></div><span class="z-10 relative">${percentage}%</span></div>`;
-}
-
-// ---------- GESTÃO DE FORMULÁRIOS E DADOS (CRUD) ----------
-function showForm(entityName, id = null) {
-    const isEditing = id !== null;
-    const item = isEditing ? state[entityName].find(i => i.id === id) : {};
-    const config = entityConfig[entityName];
-    
-    let formFieldsHtml = Object.entries(config.fields).map(([key, label]) => {
-        const value = item[key] || '';
-        const isRequired = !(config.optionalFields && config.optionalFields.includes(key));
-        if (key.includes('Id')) return createSelectField(key, label, value, null, '', isRequired);
-        if (key.includes('data')) return createInputField('date', key, label, value, isRequired);
-        if (key.includes('hora')) return createInputField('time', key, label, value, isRequired);
-        if (label.includes('R$')) return createInputField('number', key, label, value, isRequired);
-        if (key === 'status') return createSelectField('status', 'Status', value, [{id: 'Ativo', nome: 'Ativo'}, {id: 'Pausado', nome: 'Pausado'}, {id: 'Concluído', nome: 'Concluído'}], '', isRequired);
-        if (key === 'tipoContrato') {
-            const tipos = state.tiposContrato.map(t => ({ id: t, nome: t }));
-            tipos.push({ id: 'outro', nome: 'Outro (Especificar)' });
-            const selectHtml = createSelectField('tipoContrato', 'Tipo de Contrato', value, tipos, `onchange="handleTipoContratoChange(this.value)"`, isRequired);
-            const inputHtml = `<div id="novo-tipo-contrato-wrapper" class="hidden mt-4"><label for="novoTipoContrato" class="block text-sm font-medium text-gray-700">Novo Tipo de Contrato</label><input type="text" id="novoTipoContrato" name="novoTipoContrato" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"></div>`;
-            return `<div>${selectHtml}${inputHtml}</div>`;
-        }
-        return createInputField('text', key, label, value, isRequired);
-    }).join('');
-
-    const formHtml = `<form onsubmit="handleSubmit(event, '${entityName}', ${isEditing ? `'${id}'` : null})"><div class="space-y-4">${formFieldsHtml}</div><div class="mt-6 flex justify-end"><button type="button" onclick="closeModal()" class="mr-3 bg-gray-200 text-gray-800 px-4 py-2 rounded-lg hover:bg-gray-300">Cancelar</button><button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">${isEditing ? 'Salvar Alterações' : 'Criar'}</button></div></form>`;
-    
-    openModal(`${isEditing ? 'Editar' : 'Adicionar'} ${config.title}`, formHtml);
-
-    if (entityName === 'atividades') {
-        const projetoSelect = document.getElementById('projetoId');
-        if (isEditing && item.projetoId) updateActivityFormFilters(item.projetoId, item.analistaId, item.servicoId);
-        projetoSelect.onchange = (e) => updateActivityFormFilters(e.target.value);
-    }
-}
-
-function createInputField(type, id, label, value, isRequired = true) {
-    return `<div><label for="${id}" class="block text-sm font-medium text-gray-700">${label}</label><input type="${type}" id="${id}" name="${id}" value="${value}" ${type === 'number' ? 'step="0.01"' : ''} placeholder="${label.includes('R$') ? 'Ex: 150.50' : ''}" ${isRequired ? 'required' : ''} class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"></div>`;
-}
-
-function createSelectField(key, label, value, customOptions = null, extraAttributes = '', isRequired = true) {
-    let options = [];
-    if (customOptions) options = customOptions;
-    else if (key === 'fornecedorId') options = state.fornecedores.map(f => ({ id: f.id, nome: f.nome }));
-    else if (key === 'contratoId') options = state.contratos.map(c => ({ id: c.id, nome: `${c.numeroContrato} - ${c.descricao}` }));
-    else if (key === 'projetoId') options = state.projetos.map(p => ({ id: p.id, nome: p.nome }));
-    else if (key === 'analistaId') options = state.analistas.map(a => ({ id: a.id, nome: a.nome }));
-    else if (key === 'servicoId') options = state.servicos.map(s => ({ id: s.id, nome: s.nome }));
-
-    const optionsHtml = options.map(o => `<option value="${o.id}" ${o.id === value ? 'selected' : ''}>${o.nome}</option>`).join('');
-    return `<div><label for="${key}" class="block text-sm font-medium text-gray-700">${label}</label><select id="${key}" name="${key}" ${isRequired ? 'required' : ''} ${extraAttributes} class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"><option value="">Selecione...</option>${optionsHtml}</select></div>`;
-}
-
-function handleTipoContratoChange(selectedValue) {
-    const wrapper = document.getElementById('novo-tipo-contrato-wrapper');
-    const input = document.getElementById('novoTipoContrato');
-    wrapper.classList.toggle('hidden', selectedValue !== 'outro');
-    input.required = selectedValue === 'outro';
-    if (selectedValue !== 'outro') input.value = '';
-}
-
-function updateActivityFormFilters(projectId, selectedAnalistaId = null, selectedServicoId = null) {
-    const analistaSelect = document.getElementById('analistaId');
-    const servicoSelect = document.getElementById('servicoId');
-    
-    analistaSelect.innerHTML = '<option value="">Selecione...</option>';
-    servicoSelect.innerHTML = '<option value="">Selecione...</option>';
-
-    if (!projectId) return;
-
-    const projeto = state.projetos.find(p => p.id === projectId);
-    if (!projeto) return;
-    
-    const contrato = state.contratos.find(c => c.id === projeto.contratoId);
-    if (!contrato) return;
-
-    const filteredAnalistas = state.analistas.filter(a => a.fornecedorId === contrato.fornecedorId);
-    filteredAnalistas.forEach(a => analistaSelect.innerHTML += `<option value="${a.id}" ${a.id === selectedAnalistaId ? 'selected':''}>${a.nome}</option>`);
-
-    const filteredServicos = state.servicos.filter(s => s.contratoId === contrato.id);
-    filteredServicos.forEach(s => servicoSelect.innerHTML += `<option value="${s.id}" ${s.id === selectedServicoId ? 'selected':''}>${s.nome}</option>`);
-}
-
-
-function handleSubmit(event, entityName, id) {
-    event.preventDefault();
-    const formData = new FormData(event.target);
-    const newItem = id ? state[entityName].find(i => i.id === id) : { id: generateId() };
-    formData.forEach((value, key) => newItem[key] = value);
-
-    if (entityName === 'contratos' && newItem.tipoContrato === 'outro') {
-        const novoTipo = formData.get('novoTipoContrato').trim();
-        if (novoTipo) {
-            if (!state.tiposContrato.some(t => t.toLowerCase() === novoTipo.toLowerCase())) state.tiposContrato.push(novoTipo);
-            newItem.tipoContrato = novoTipo;
-        } else { return; }
-    }
-    delete newItem.novoTipoContrato;
-
-    if (entityName === 'atividades') {
-        const valorEspecifico = parseFloat(newItem.valorEspecifico) || 0;
-        newItem.duracao = (newItem.horaInicio && newItem.horaTermino) ? (new Date(`1970-01-01T${newItem.horaTermino}`) - new Date(`1970-01-01T${newItem.horaInicio}`)) / 3600000 : 0;
-        if (valorEspecifico > 0) newItem.custo = valorEspecifico;
-        else if (newItem.analistaId) {
-            const analista = state.analistas.find(a => a.id === newItem.analistaId);
-            newItem.custo = (newItem.duracao || 0) * (parseFloat(analista?.valorHoraEspecifico) || 0);
-        } else newItem.custo = 0;
-    }
-    
-    if (id) Object.assign(state[entityName].find(i => i.id === id), newItem);
-    else state[entityName].push(newItem);
-
-    saveState();
-    showView(entityName);
-    closeModal();
-}
-
-function deleteItem(entityName, id) {
-    if (confirm(`Tem certeza que deseja excluir este item?`)) {
-        state[entityName] = state[entityName].filter(item => item.id !== id);
-        saveState();
-        showView(entityName);
-    }
-}
-
-// ---------- CÁLCULOS E LÓGICA DE NEGÓCIO ----------
-function DATE_ADD(dateStr, months) { const date = new Date(dateStr); date.setMonth(date.getMonth() + parseInt(months)); return date; }
-function calculateProjectConsumption(projectId) {
-    const activities = state.atividades.filter(a => a.projetoId === projectId);
-    const consumedCost = activities.reduce((sum, a) => sum + (a.custo || 0), 0);
-    const consumedHours = activities.reduce((sum, a) => sum + (a.duracao || 0), 0);
-    return { consumedCost, consumedHours };
-}
-
-// ---------- FUNÇÕES AUXILIARES (GETTERS E FORMATTERS) ----------
-function getFornecedorName(id) { return state.fornecedores.find(f => f.id === id)?.nome || 'N/A'; }
-function getContratoDesc(id) { return state.contratos.find(c => c.id === id)?.descricao || 'N/A'; }
-function getProjetoName(id) { return state.projetos.find(p => p.id === id)?.nome || 'N/A'; }
-function getAnalistaName(id) { return state.analistas.find(a => a.id === id)?.nome || 'N/A'; }
-function getServicoName(id) { return state.servicos.find(s => s.id === id)?.nome || 'N/A'; }
-function formatCurrency(value) { return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value || 0); }
-function formatDate(dateString) { if (!dateString) return 'N/A'; const date = new Date(dateString); const adjustedDate = new Date(date.getTime() + Math.abs(date.getTimezoneOffset()*60000)); return adjustedDate.toLocaleDateString('pt-BR'); }
-
-// ---------- RENDERIZAÇÃO DO DASHBOARD E DETALHES ----------
-function renderDashboard(range = 'currentMonth') {
-    document.querySelectorAll('.db-filter-btn').forEach(btn => {
-        btn.classList.remove('bg-blue-600', 'text-white');
-        btn.classList.add('bg-white', 'text-gray-700');
-    });
-    const activeBtn = document.querySelector(`.db-filter-btn[onclick="renderDashboard('${range}')"]`);
-    if (activeBtn) {
-        activeBtn.classList.add('bg-blue-600', 'text-white');
-        activeBtn.classList.remove('bg-white', 'text-gray-700');
-    }
-
-    const today = new Date();
-    let startDate, endDate = new Date();
-    if (range === 'currentMonth') startDate = new Date(today.getFullYear(), today.getMonth(), 1);
-    else if (range === 'lastMonth') {
-        startDate = new Date(today.getFullYear(), today.getMonth() - 1, 1);
-        endDate = new Date(today.getFullYear(), today.getMonth(), 0);
-    } else if (range === 'last90days') startDate = new Date(new Date().setDate(today.getDate() - 90));
-
-    const atividadesPeriodo = state.atividades.filter(a => { const d = new Date(a.data); return d >= startDate && d <= endDate; });
-    const custoTotal = atividadesPeriodo.reduce((sum, a) => sum + (a.custo || 0), 0);
-    const horasTotais = atividadesPeriodo.reduce((sum, a) => sum + (a.duracao || 0), 0);
-    const projetosAtivos = state.projetos.filter(p => p.status === 'Ativo').length;
-    
-    const thirtyDaysFromNow = new Date(); thirtyDaysFromNow.setDate(today.getDate() + 30);
-    const contratosVencendo = state.contratos.filter(c => { const v = DATE_ADD(c.dataContratacao, c.periodo); return v <= thirtyDaysFromNow && v >= today; }).length;
-
-    document.getElementById('stat-custo-total').textContent = formatCurrency(custoTotal);
-    document.getElementById('stat-horas-totais').textContent = `${horasTotais.toFixed(2)}h`;
-    document.getElementById('stat-projetos-ativos').textContent = projetosAtivos;
-    document.getElementById('stat-contratos-vencendo').textContent = contratosVencendo;
-
-    const custoPorProjeto = {};
-    atividadesPeriodo.forEach(a => { const nome = getProjetoName(a.projetoId); custoPorProjeto[nome] = (custoPorProjeto[nome] || 0) + a.custo; });
-    
-    const chartContainer = document.getElementById('chart-custo-projeto');
-    chartContainer.innerHTML = '';
-    const maxCost = Math.max(...Object.values(custoPorProjeto), 1);
-    const sortedProjects = Object.entries(custoPorProjeto).sort(([,a],[,b]) => b-a);
-    if (sortedProjects.length > 0) {
-        sortedProjects.forEach(([nome, custo]) => chartContainer.innerHTML += `<div><div class="flex justify-between text-sm text-gray-600"><span>${nome}</span><span>${formatCurrency(custo)}</span></div><div class="w-full bg-gray-200 rounded-full h-2.5 mt-1"><div class="bg-blue-600 h-2.5 rounded-full" style="width: ${(custo/maxCost*100)}%"></div></div></div>`);
-    } else { chartContainer.innerHTML = '<p class="text-center text-gray-500">Nenhum custo registrado no período.</p>'; }
-
-    const listaRecentes = document.getElementById('lista-atividades-recentes');
-    listaRecentes.innerHTML = '';
-    const recentActivities = state.atividades.sort((a, b) => new Date(b.data) - new Date(a.data)).slice(0, 5);
-    if (recentActivities.length > 0) {
-        recentActivities.forEach(a => listaRecentes.innerHTML += `<li class="flex items-center justify-between p-2 rounded hover:bg-gray-50"><div><p class="font-medium text-gray-800">${a.descricao}</p><p class="text-sm text-gray-500">${getAnalistaName(a.analistaId)} em ${getProjetoName(a.projetoId)}</p></div><div class="text-right"><p class="font-semibold text-gray-700">${formatCurrency(a.custo)}</p><p class="text-xs text-gray-400">${formatDate(a.data)}</p></div></li>`);
-    } else { listaRecentes.innerHTML = '<p class="text-center text-gray-500">Nenhuma atividade registrada.</p>'; }
-}
-
-function renderDetailsView(entityName, id) {
-    const item = state[entityName].find(i => i.id === id);
-    if (!item) { showView(entityName); return; }
-    
-    const view = document.getElementById('view-details');
-    const config = entityConfig[entityName];
-    
-    let detailsHtml = `<div class="bg-white p-6 rounded-lg shadow-md"><dl class="grid grid-cols-1 md:grid-cols-3 gap-x-4 gap-y-6">`;
-    for (const [key, label] of Object.entries(config.fields)) {
-        let value = item[key] || 'N/A';
-        if (key.includes('Id')) value = (key === 'contratoId' ? getContratoDesc(item[key]) : (key === 'fornecedorId' ? getFornecedorName(item[key]) : 'N/A'));
-        else if (key.includes('data')) value = formatDate(item[key]);
-        else if (label.includes('R$')) value = formatCurrency(item[key]);
-        detailsHtml += `<div class="col-span-1"><dt class="text-sm font-medium text-gray-500">${label}</dt><dd class="mt-1 text-lg text-gray-900">${value}</dd></div>`;
-    }
-    detailsHtml += `</dl></div>`;
-    
-    let relatedItemsHtml = '';
-    if (entityName === 'contratos') {
-        relatedItemsHtml += renderRelatedTable('Projetos Vinculados', state.projetos.filter(p => p.contratoId === id), entityConfig.projetos);
-        relatedItemsHtml += renderRelatedTable('Serviços Vinculados', state.servicos.filter(s => s.contratoId === id), entityConfig.servicos);
-    } else if (entityName === 'projetos') {
-        relatedItemsHtml += renderRelatedTable('Atividades do Projeto', state.atividades.filter(a => a.projetoId === id), entityConfig.atividades);
-    } else if (entityName === 'fornecedores') {
-        relatedItemsHtml += renderRelatedTable('Contratos Vinculados', state.contratos.filter(c => c.fornecedorId === id), entityConfig.contratos);
-        relatedItemsHtml += renderRelatedTable('Analistas Vinculados', state.analistas.filter(a => a.fornecedorId === id), entityConfig.analistas);
-    }
-    
-    view.innerHTML = `<div class="flex justify-between items-center mb-6"><h2 class="text-3xl font-bold text-gray-800">Detalhes de ${config.title}</h2><button onclick="showView('${entityName}')" class="bg-gray-500 text-white px-4 py-2 rounded-lg shadow hover:bg-gray-600 transition duration-300"><i class="fas fa-arrow-left mr-2"></i> Voltar</button></div>${detailsHtml}${relatedItemsHtml}`;
-}
-
-function renderRelatedTable(title, data, config) {
-    if (data.length === 0) return '';
-    let headers = Object.values(config.fields).map(h => `<th>${h}</th>`).join('') + (config.extraHeaders || '');
-    let rows = data.map(item => `<tr>${config.columns(item)}</tr>`).join('');
-    return `<div class="mt-6"><h3 class="text-2xl font-bold text-gray-800 mb-4">${title}</h3><div class="bg-white rounded-lg shadow overflow-x-auto"><table class="w-full table-auto"><thead class="bg-gray-50 border-b-2 border-gray-200"><tr>${headers}</tr></thead><tbody>${rows}</tbody></table></div></div>`;
-}
-
-// ---------- EXPORTAÇÃO PARA CSV ----------
-function exportToCSV(entityName) {
-    const items = state[entityName];
-    if (items.length === 0) { alert('Não há dados para exportar.'); return; }
-    
-    const config = entityConfig[entityName];
-    const headers = Object.values(config.fields);
-    if (config.extraHeaders) { // Simplistic parsing of extra headers
-        config.extraHeaders.match(/<th>(.*?)<\/th>/g).forEach(h => headers.push(h.replace(/<\/?th>/g, '')));
-    }
-
-    const replacer = (key, value) => value === null ? '' : value;
-    
-    const csvRows = [
-        headers.join(','),
-        ...items.map(item => {
-            const rowData = [];
-            // This needs to be manually mapped to match the visual columns
-            if (entityName === 'atividades') {
-                rowData.push(getProjetoName(item.projetoId));
-                rowData.push(getAnalistaName(item.analistaId));
-                rowData.push(getServicoName(item.servicoId));
-                rowData.push(`"${item.descricao || ''}"`);
-                rowData.push(formatDate(item.data));
-                rowData.push(item.horaInicio || '');
-                rowData.push(item.horaTermino || '');
-                rowData.push((item.duracao || 0).toFixed(2));
-                rowData.push(item.custo || 0);
-            } else { // Fallback for other entities
-                 Object.keys(config.fields).forEach(key => rowData.push(JSON.stringify(item[key] || '', replacer)));
+        // ---------- AUTENTICAÇÃO E INICIALIZAÇÃO ----------
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                userId = user.uid;
+                console.log("Utilizador autenticado com UID:", userId);
+                loadAllData();
+                document.getElementById('loading-overlay').style.display = 'none';
+            } else {
+                signInAnonymously(auth).catch((error) => {
+                    console.error("Erro na autenticação anónima:", error);
+                    const loadingOverlay = document.getElementById('loading-overlay');
+                    loadingOverlay.innerHTML = `
+                        <div class="text-center p-4 bg-white rounded-lg shadow-lg">
+                            <i class="fas fa-exclamation-triangle text-red-500 text-4xl mb-4"></i>
+                            <h2 class="text-2xl font-bold text-gray-800 mb-2">Erro de Conexão</h2>
+                             <p class="text-gray-600">Não foi possível conectar ao Firebase. Verifique se as suas chaves de configuração estão corretas e se as regras do Firestore foram publicadas.</p>
+                        </div>
+                    `;
+                });
             }
-            return rowData.join(',');
-        })
-    ];
-    
-    const csvString = csvRows.join('\r\n');
-    const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
-    
-    const link = document.createElement('a');
-    if (link.download !== undefined) {
-        const url = URL.createObjectURL(blob);
-        link.setAttribute('href', url);
-        link.setAttribute('download', `${entityName}_${new Date().toISOString().split('T')[0]}.csv`);
-        link.style.visibility = 'hidden';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+        });
     }
-}
 
+    // Variáveis globais da aplicação
+    let currentView = 'dashboard';
+    let userId = null;
+
+    const state = {
+        fornecedores: [], contratos: [], projetos: [], analistas: [], atividades: [], servicos: [],
+        tiposContrato: ['Serviços de TI', 'Sistemas Corporativos', 'Segurança da Informação', 'Softwares Especializados', 'Softwares Operacionais', 'Aplicações Web', 'CRM', 'Recursos Humanos']
+    };
+    
+    // Anexa as funções ao objeto window para que possam ser chamadas pelo HTML (onclick)
+    window.showView = showView;
+    window.renderDashboard = renderDashboard;
+    window.showForm = showForm;
+    window.deleteItem = deleteItem;
+    window.closeModal = closeModal;
+    window.handleSubmit = handleSubmit;
+    window.handleTipoContratoChange = handleTipoContratoChange;
+    window.updateActivityFormFilters = updateActivityFormFilters;
+    window.exportToCSV = exportToCSV;
+
+    document.addEventListener('DOMContentLoaded', () => {
+        setupEventListeners();
+        showView('dashboard');
+    });
+
+    function setupEventListeners() {
+        document.getElementById('menu-button').addEventListener('click', () => document.getElementById('sidebar').classList.toggle('-translate-x-full'));
+        document.querySelectorAll('.nav-link').forEach(link => {
+            link.addEventListener('click', (e) => {
+                document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('bg-gray-700'));
+                e.currentTarget.classList.add('bg-gray-700');
+                const sidebar = document.getElementById('sidebar');
+                if (!sidebar.classList.contains('md:relative')) sidebar.classList.add('-translate-x-full');
+            });
+        });
+    }
+
+    // ---------- GESTÃO DE DADOS (FIRESTORE) ----------
+    function loadAllData() {
+        if (!userId) return;
+        const collections = ['fornecedores', 'contratos', 'projetos', 'analistas', 'servicos', 'atividades', 'tiposContrato'];
+        
+        collections.forEach(entityName => {
+            const collRef = collection(getFirestore(), `users/${userId}/${entityName}`);
+            onSnapshot(collRef, (querySnapshot) => {
+                const items = [];
+                querySnapshot.forEach((doc) => {
+                    items.push({ id: doc.id, ...doc.data() });
+                });
+
+                if(entityName === 'tiposContrato' && items.length > 0) {
+                    state.tiposContrato = items[0].values; // O array fica guardado num único documento
+                } else if(entityName !== 'tiposContrato') {
+                    state[entityName] = items;
+                }
+                
+                // Re-renderiza a view atual ou o dashboard quando os dados mudam
+                if (currentView === entityName) {
+                    renderEntityListView(entityName);
+                } else if (currentView === 'dashboard') {
+                    renderDashboard();
+                } else if (currentView.startsWith('details')) {
+                    // Lógica para atualizar a view de detalhes se necessário
+                    const [_, entity, id] = currentView.split(':');
+                    renderDetailsView(entity, id);
+                }
+            }, (error) => {
+                console.error(`Erro ao carregar ${entityName}:`, error);
+            });
+        });
+    }
+
+    // ---------- GESTÃO DE VIEWS E MODAIS ----------
+    function showView(viewName, detailsId = null) {
+        if (detailsId) {
+             currentView = `details:${detailsId.entity}:${detailsId.id}`;
+        } else {
+            currentView = viewName; // Atualiza a view atual
+        }
+
+        document.querySelectorAll('.view').forEach(view => view.classList.add('hidden'));
+        const activeView = document.getElementById(`view-${viewName}`);
+        activeView.classList.remove('hidden');
+        
+        if (viewName !== 'dashboard') {
+            activeView.innerHTML = ''; 
+        }
+
+        switch(viewName) {
+            case 'dashboard': renderDashboard(); break;
+            case 'details': renderDetailsView(detailsId.entity, detailsId.id); break;
+            default: renderEntityListView(viewName); break;
+        }
+    }
+
+    function openModal(title, formHtml) {
+        document.getElementById('modal-title').innerText = title;
+        document.getElementById('modal-body').innerHTML = formHtml;
+        const modal = document.getElementById('modal');
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+        setTimeout(() => {
+            modal.querySelector('.modal-backdrop')?.classList.add('opacity-100');
+            modal.querySelector('.modal-content')?.classList.remove('scale-95');
+        }, 10);
+    }
+
+    function closeModal() {
+        const modal = document.getElementById('modal');
+        modal.querySelector('.modal-backdrop')?.classList.remove('opacity-100');
+        modal.querySelector('.modal-content')?.classList.add('scale-95');
+        setTimeout(() => { modal.classList.add('hidden'); modal.classList.remove('flex'); }, 300);
+    }
+
+    // ---------- CONFIGURAÇÃO E RENDERIZAÇÃO DAS ENTIDADES ----------
+    const entityConfig = {
+        fornecedores: { title: "Fornecedores", fields: { nome: "Nome", cnpj: "CNPJ", contato: "Contato" }, columns: item => `<td><a href="#" class="text-blue-600 hover:underline" onclick="showView('details', {entity: 'fornecedores', id: '${item.id}'})">${item.nome}</a></td><td>${item.cnpj || ''}</td><td>${item.contato || ''}</td>` },
+        contratos: { title: "Contratos", fields: { numeroContrato: "Nº Contrato", descricao: "Descrição", tipoContrato: "Tipo", fornecedorId: "Fornecedor", dataContratacao: "Contratação", periodo: "Período", valorMensal: "Valor Mensal" }, columns: item => `<td class="whitespace-nowrap"><a href="#" class="text-blue-600 hover:underline" onclick="showView('details', {entity: 'contratos', id: '${item.id}'})">${item.numeroContrato}</a></td><td class="truncate max-w-xs" title="${item.descricao}">${item.descricao}</td><td class="whitespace-nowrap">${item.tipoContrato || 'N/A'}</td><td class="whitespace-nowrap">${getFornecedorName(item.fornecedorId)}</td><td class="whitespace-nowrap">${formatDate(item.dataContratacao)}</td><td class="whitespace-nowrap text-center">${item.periodo}</td><td class="whitespace-nowrap">${formatCurrency(item.valorMensal)}</td><td class="whitespace-nowrap">${formatDate(DATE_ADD(item.dataContratacao, item.periodo))}</td>`, extraHeaders: '<th>Vencimento</th>' },
+        projetos: { title: "Projetos", fields: { nome: "Nome", contratoId: "Contrato", status: "Status", orcamentoTotal: "Orçamento (R$)", bancoHoras: "Horas Contratadas" }, optionalFields: ['orcamentoTotal', 'bancoHoras'], columns: item => { const {consumedCost, consumedHours} = calculateProjectConsumption(item.id); const orcamento = parseFloat(item.orcamentoTotal) || 0; const horas = parseFloat(item.bancoHoras) || 0; const costPercent = orcamento > 0 ? (consumedCost / orcamento * 100).toFixed(0) : 0; const hoursPercent = horas > 0 ? (consumedHours / horas * 100).toFixed(0) : 0; return `<td><a href="#" class="text-blue-600 hover:underline" onclick="showView('details', {entity: 'projetos', id: '${item.id}'})">${item.nome}</a></td><td class="truncate max-w-xs" title="${getContratoDesc(item.contratoId)}">${getContratoDesc(item.contratoId)}</td><td>${item.status}</td><td>${renderProgressBar(costPercent, `${formatCurrency(consumedCost)} / ${formatCurrency(orcamento)}`)}</td><td>${renderProgressBar(hoursPercent, `${consumedHours.toFixed(2)}h / ${horas.toFixed(2)}h`)}</td>`; }, extraHeaders: '<th>Consumo Orçamento</th><th>Consumo Horas</th>' },
+        analistas: { title: "Analistas", fields: { nome: "Nome", fornecedorId: "Fornecedor", valorHoraEspecifico: "Valor Hora (R$)" }, columns: item => `<td>${item.nome}</td><td>${getFornecedorName(item.fornecedorId)}</td><td>${formatCurrency(item.valorHoraEspecifico)}</td>` },
+        servicos: { title: "Serviços", fields: { nome: "Nome do Serviço", descricao: "Descrição", contratoId: "Contrato" }, columns: item => `<td>${item.nome}</td><td class="truncate max-w-md" title="${item.descricao}">${item.descricao}</td><td class="truncate max-w-xs" title="${getContratoDesc(item.contratoId)}">${getContratoDesc(item.contratoId)}</td>` },
+        atividades: { title: "Atividades", fields: { projetoId: "Projeto", analistaId: "Analista", servicoId: "Serviço", descricao: "Descrição", data: "Data", horaInicio: "Hora Início", horaTermino: "Hora Término", valorEspecifico: "Valor Específico (R$)" }, optionalFields: ['analistaId', 'horaInicio', 'horaTermino', 'valorEspecifico'], columns: item => `<td class="whitespace-nowrap">${getProjetoName(item.projetoId)}</td><td class="whitespace-nowrap">${getAnalistaName(item.analistaId)}</td><td class="whitespace-nowrap">${getServicoName(item.servicoId)}</td><td class="truncate max-w-sm" title="${item.descricao}">${item.descricao}</td><td class="whitespace-nowrap">${formatDate(item.data)}</td><td class="whitespace-nowrap text-center">${item.horaInicio || '-'}</td><td class="whitespace-nowrap text-center">${item.horaTermino || '-'}</td><td class="whitespace-nowrap text-center">${formatCurrency(item.valorEspecifico)}</td><td class="whitespace-nowrap text-center">${(item.duracao || 0).toFixed(2)}h</td><td class="whitespace-nowrap">${formatCurrency(item.custo)}</td>`, extraHeaders: '<th>Duração</th><th>Custo</th>' }
+    };
+
+    function renderEntityListView(entityName) {
+        const config = entityConfig[entityName];
+        const view = document.getElementById(`view-${entityName}`);
+        
+        let tableHeaders = Object.values(config.fields).map(h => `<th>${h}</th>`).join('');
+        if (config.extraHeaders) tableHeaders += config.extraHeaders;
+
+        view.innerHTML = `<div class="flex justify-between items-center mb-6"><h2 class="text-3xl font-bold text-gray-800">${config.title}</h2><div class="flex space-x-2"><button onclick="exportToCSV('${entityName}')" class="bg-green-600 text-white px-4 py-2 rounded-lg shadow hover:bg-green-700 transition duration-300"><i class="fas fa-file-csv mr-2"></i> Exportar</button><button onclick="showForm('${entityName}')" class="bg-blue-600 text-white px-4 py-2 rounded-lg shadow hover:bg-blue-700 transition duration-300"><i class="fas fa-plus mr-2"></i> Adicionar</button></div></div><div class="bg-white rounded-lg shadow overflow-x-auto"><table class="w-full table-auto"><thead class="bg-gray-50 border-b-2 border-gray-200"><tr>${tableHeaders}<th>Ações</th></tr></thead><tbody id="${entityName}-table-body"></tbody></table></div>`;
+        const tableBody = document.getElementById(`${entityName}-table-body`);
+        tableBody.innerHTML = '';
+        state[entityName].forEach(item => {
+            const row = document.createElement('tr');
+            row.className = 'border-b hover:bg-gray-50';
+            row.innerHTML = `${config.columns(item)}<td class="text-center"><button onclick="showForm('${entityName}', '${item.id}')" class="text-blue-500 hover:text-blue-700 p-2"><i class="fas fa-edit"></i></button><button onclick="deleteItem('${entityName}', '${item.id}')" class="text-red-500 hover:text-red-700 p-2"><i class="fas fa-trash"></i></button></td>`;
+            tableBody.appendChild(row);
+        });
+    }
+
+    function renderProgressBar(percentage, text) {
+        let color = 'bg-green-500';
+        if (percentage > 75) color = 'bg-yellow-500';
+        if (percentage >= 100) color = 'bg-red-500';
+        return `<div class="w-full progress-bar-bg rounded-full h-5 relative text-white text-xs flex items-center justify-center" title="${text}"><div class="absolute left-0 top-0 h-full rounded-full progress-bar ${color}" style="width: ${Math.min(percentage, 100)}%;"></div><span class="z-10 relative">${percentage}%</span></div>`;
+    }
+
+    // ---------- GESTÃO DE FORMULÁRIOS E DADOS (CRUD) ----------
+    function showForm(entityName, id = null) {
+        const isEditing = id !== null;
+        const item = isEditing ? state[entityName].find(i => i.id === id) : {};
+        const config = entityConfig[entityName];
+        
+        let formFieldsHtml = Object.entries(config.fields).map(([key, label]) => {
+            const value = item[key] || '';
+            const isRequired = !(config.optionalFields && config.optionalFields.includes(key));
+            if (key.includes('Id')) return createSelectField(key, label, value, null, '', isRequired);
+            if (key.includes('data')) return createInputField('date', key, label, value, isRequired);
+            if (key.includes('hora')) return createInputField('time', key, label, value, isRequired);
+            if (label.includes('R$')) return createInputField('number', key, label, value, isRequired);
+            if (key === 'status') return createSelectField('status', 'Status', value, [{id: 'Ativo', nome: 'Ativo'}, {id: 'Pausado', nome: 'Pausado'}, {id: 'Concluído', nome: 'Concluído'}], '', isRequired);
+            if (key === 'tipoContrato') {
+                const tipos = state.tiposContrato.map(t => ({ id: t, nome: t }));
+                tipos.push({ id: 'outro', nome: 'Outro (Especificar)' });
+                const selectHtml = createSelectField('tipoContrato', 'Tipo de Contrato', value, tipos, `onchange="handleTipoContratoChange(this.value)"`, isRequired);
+                const inputHtml = `<div id="novo-tipo-contrato-wrapper" class="hidden mt-4"><label for="novoTipoContrato" class="block text-sm font-medium text-gray-700">Novo Tipo de Contrato</label><input type="text" id="novoTipoContrato" name="novoTipoContrato" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"></div>`;
+                return `<div>${selectHtml}${inputHtml}</div>`;
+            }
+            return createInputField('text', key, label, value, isRequired);
+        }).join('');
+
+        const formHtml = `<form onsubmit="handleSubmit(event, '${entityName}', ${isEditing ? `'${id}'` : 'null'})"><div class="space-y-4">${formFieldsHtml}</div><div class="mt-6 flex justify-end"><button type="button" onclick="closeModal()" class="mr-3 bg-gray-200 text-gray-800 px-4 py-2 rounded-lg hover:bg-gray-300">Cancelar</button><button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">${isEditing ? 'Salvar Alterações' : 'Criar'}</button></div></form>`;
+        
+        openModal(`${isEditing ? 'Editar' : 'Adicionar'} ${config.title}`, formHtml);
+
+        if (entityName === 'atividades') {
+            const projetoSelect = document.getElementById('projetoId');
+            if (isEditing && item.projetoId) updateActivityFormFilters(item.projetoId, item.analistaId, item.servicoId);
+            projetoSelect.onchange = (e) => updateActivityFormFilters(e.target.value);
+        }
+    }
+
+    function createInputField(type, id, label, value, isRequired = true) {
+        return `<div><label for="${id}" class="block text-sm font-medium text-gray-700">${label}</label><input type="${type}" id="${id}" name="${id}" value="${value}" ${type === 'number' ? 'step="0.01"' : ''} placeholder="${label.includes('R$') ? 'Ex: 150.50' : ''}" ${isRequired ? 'required' : ''} class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"></div>`;
+    }
+
+    function createSelectField(key, label, value, customOptions = null, extraAttributes = '', isRequired = true) {
+        let options = [];
+        if (customOptions) options = customOptions;
+        else if (key === 'fornecedorId') options = state.fornecedores.map(f => ({ id: f.id, nome: f.nome }));
+        else if (key === 'contratoId') options = state.contratos.map(c => ({ id: c.id, nome: `${c.numeroContrato} - ${c.descricao}` }));
+        else if (key === 'projetoId') options = state.projetos.map(p => ({ id: p.id, nome: p.nome }));
+        else if (key === 'analistaId') options = state.analistas.map(a => ({ id: a.id, nome: a.nome }));
+        else if (key === 'servicoId') options = state.servicos.map(s => ({ id: s.id, nome: s.nome }));
+
+        const optionsHtml = options.map(o => `<option value="${o.id}" ${o.id === value ? 'selected' : ''}>${o.nome}</option>`).join('');
+        return `<div><label for="${key}" class="block text-sm font-medium text-gray-700">${label}</label><select id="${key}" name="${key}" ${isRequired ? 'required' : ''} ${extraAttributes} class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"><option value="">Selecione...</option>${optionsHtml}</select></div>`;
+    }
+
+    function handleTipoContratoChange(selectedValue) {
+        const wrapper = document.getElementById('novo-tipo-contrato-wrapper');
+        const input = document.getElementById('novoTipoContrato');
+        wrapper.classList.toggle('hidden', selectedValue !== 'outro');
+        input.required = selectedValue === 'outro';
+        if (selectedValue !== 'outro') input.value = '';
+    }
+
+    function updateActivityFormFilters(projectId, selectedAnalistaId = null, selectedServicoId = null) {
+        const analistaSelect = document.getElementById('analistaId');
+        const servicoSelect = document.getElementById('servicoId');
+        
+        analistaSelect.innerHTML = '<option value="">Selecione...</option>';
+        servicoSelect.innerHTML = '<option value="">Selecione...</option>';
+
+        if (!projectId) return;
+
+        const projeto = state.projetos.find(p => p.id === projectId);
+        if (!projeto) return;
+        
+        const contrato = state.contratos.find(c => c.id === projeto.contratoId);
+        if (!contrato) return;
+
+        const filteredAnalistas = state.analistas.filter(a => a.fornecedorId === contrato.fornecedorId);
+        filteredAnalistas.forEach(a => analistaSelect.innerHTML += `<option value="${a.id}" ${a.id === selectedAnalistaId ? 'selected':''}>${a.nome}</option>`);
+
+        const filteredServicos = state.servicos.filter(s => s.contratoId === contrato.id);
+        filteredServicos.forEach(s => servicoSelect.innerHTML += `<option value="${s.id}" ${s.id === selectedServicoId ? 'selected':''}>${s.nome}</option>`);
+    }
+
+    async function handleSubmit(event, entityName, id) {
+        event.preventDefault();
+        const formData = new FormData(event.target);
+        const newItem = {};
+        formData.forEach((value, key) => newItem[key] = value);
+        
+        const db = getFirestore();
+
+        if (entityName === 'contratos' && newItem.tipoContrato === 'outro') {
+            const novoTipo = formData.get('novoTipoContrato').trim();
+            if (novoTipo) {
+                if (!state.tiposContrato.some(t => t.toLowerCase() === novoTipo.toLowerCase())) {
+                    state.tiposContrato.push(novoTipo);
+                    const tiposContratoDocRef = doc(db, `users/${userId}/tiposContrato`, 'main');
+                    await setDoc(tiposContratoDocRef, { values: state.tiposContrato });
+                }
+                newItem.tipoContrato = novoTipo;
+            } else { return; }
+        }
+        delete newItem.novoTipoContrato;
+
+        if (entityName === 'atividades') {
+            const valorEspecifico = parseFloat(newItem.valorEspecifico) || 0;
+            newItem.duracao = (newItem.horaInicio && newItem.horaTermino) ? (new Date(`1970-01-01T${newItem.horaTermino}`) - new Date(`1970-01-01T${newItem.horaInicio}`)) / 3600000 : 0;
+            if (valorEspecifico > 0) newItem.custo = valorEspecifico;
+            else if (newItem.analistaId) {
+                const analista = state.analistas.find(a => a.id === newItem.analistaId);
+                newItem.custo = (newItem.duracao || 0) * (parseFloat(analista?.valorHoraEspecifico) || 0);
+            } else newItem.custo = 0;
+        }
+        
+        try {
+            if (id) {
+                const docRef = doc(db, `users/${userId}/${entityName}`, id);
+                await setDoc(docRef, newItem, { merge: true });
+            } else {
+                const collRef = collection(db, `users/${userId}/${entityName}`);
+                await addDoc(collRef, newItem);
+            }
+        } catch (error) {
+            console.error("Erro ao salvar no Firestore:", error);
+            alert("Ocorreu um erro ao salvar os dados.");
+        }
+
+        closeModal();
+    }
+
+    async function deleteItem(entityName, id) {
+        if (confirm(`Tem certeza que deseja excluir este item?`)) {
+            try {
+                const docRef = doc(getFirestore(), `users/${userId}/${entityName}`, id);
+                await deleteDoc(docRef);
+            } catch(error) {
+                console.error("Erro ao excluir do Firestore:", error);
+                alert("Ocorreu um erro ao excluir o item.");
+            }
+        }
+    }
+
+    // ---------- CÁLCULOS E LÓGICA DE NEGÓCIO ----------
+    function DATE_ADD(dateStr, months) { const date = new Date(dateStr); date.setMonth(date.getMonth() + parseInt(months)); return date; }
+    function calculateProjectConsumption(projectId) {
+        const activities = state.atividades.filter(a => a.projetoId === projectId);
+        const consumedCost = activities.reduce((sum, a) => sum + (a.custo || 0), 0);
+        const consumedHours = activities.reduce((sum, a) => sum + (a.duracao || 0), 0);
+        return { consumedCost, consumedHours };
+    }
+
+    // ---------- FUNÇÕES AUXILIARES (GETTERS E FORMATTERS) ----------
+    function getFornecedorName(id) { return state.fornecedores.find(f => f.id === id)?.nome || 'N/A'; }
+    function getContratoDesc(id) { return state.contratos.find(c => c.id === id)?.descricao || 'N/A'; }
+    function getProjetoName(id) { return state.projetos.find(p => p.id === id)?.nome || 'N/A'; }
+    function getAnalistaName(id) { return state.analistas.find(a => a.id === id)?.nome || 'N/A'; }
+    function getServicoName(id) { return state.servicos.find(s => s.id === id)?.nome || 'N/A'; }
+    function formatCurrency(value) { return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(parseFloat(value) || 0); }
+    function formatDate(dateString) { if (!dateString) return 'N/A'; const date = new Date(dateString); const adjustedDate = new Date(date.getTime() + Math.abs(date.getTimezoneOffset()*60000)); return adjustedDate.toLocaleDateString('pt-BR'); }
+
+    // ---------- RENDERIZAÇÃO DO DASHBOARD E DETALHES ----------
+    function renderDashboard(range = 'currentMonth') {
+        document.querySelectorAll('.db-filter-btn').forEach(btn => {
+            btn.classList.remove('bg-blue-600', 'text-white');
+            btn.classList.add('bg-white', 'text-gray-700');
+        });
+        const activeBtn = document.querySelector(`.db-filter-btn[onclick="renderDashboard('${range}')"]`);
+        if (activeBtn) {
+            activeBtn.classList.add('bg-blue-600', 'text-white');
+            activeBtn.classList.remove('bg-white', 'text-gray-700');
+        }
+
+        const today = new Date();
+        let startDate, endDate = new Date();
+        if (range === 'currentMonth') startDate = new Date(today.getFullYear(), today.getMonth(), 1);
+        else if (range === 'lastMonth') {
+            startDate = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+            endDate = new Date(today.getFullYear(), today.getMonth(), 0);
+        } else if (range === 'last90days') startDate = new Date(new Date().setDate(today.getDate() - 90));
+
+        const atividadesPeriodo = state.atividades.filter(a => { const d = new Date(a.data); return d >= startDate && d <= endDate; });
+        const custoTotal = atividadesPeriodo.reduce((sum, a) => sum + (a.custo || 0), 0);
+        const horasTotais = atividadesPeriodo.reduce((sum, a) => sum + (a.duracao || 0), 0);
+        const projetosAtivos = state.projetos.filter(p => p.status === 'Ativo').length;
+        
+        const thirtyDaysFromNow = new Date(); thirtyDaysFromNow.setDate(today.getDate() + 30);
+        const contratosVencendo = state.contratos.filter(c => { const v = DATE_ADD(c.dataContratacao, c.periodo); return v <= thirtyDaysFromNow && v >= today; }).length;
+
+        document.getElementById('stat-custo-total').textContent = formatCurrency(custoTotal);
+        document.getElementById('stat-horas-totais').textContent = `${horasTotais.toFixed(2)}h`;
+        document.getElementById('stat-projetos-ativos').textContent = projetosAtivos;
+        document.getElementById('stat-contratos-vencendo').textContent = contratosVencendo;
+
+        const custoPorProjeto = {};
+        atividadesPeriodo.forEach(a => { const nome = getProjetoName(a.projetoId); custoPorProjeto[nome] = (custoPorProjeto[nome] || 0) + a.custo; });
+        
+        const chartContainer = document.getElementById('chart-custo-projeto');
+        chartContainer.innerHTML = '';
+        const maxCost = Math.max(...Object.values(custoPorProjeto), 1);
+        const sortedProjects = Object.entries(custoPorProjeto).sort(([,a],[,b]) => b-a);
+        if (sortedProjects.length > 0) {
+            sortedProjects.forEach(([nome, custo]) => chartContainer.innerHTML += `<div><div class="flex justify-between text-sm text-gray-600"><span>${nome}</span><span>${formatCurrency(custo)}</span></div><div class="w-full bg-gray-200 rounded-full h-2.5 mt-1"><div class="bg-blue-600 h-2.5 rounded-full" style="width: ${(custo/maxCost*100)}%"></div></div></div>`);
+        } else { chartContainer.innerHTML = '<p class="text-center text-gray-500">Nenhum custo registrado no período.</p>'; }
+
+        const listaRecentes = document.getElementById('lista-atividades-recentes');
+        listaRecentes.innerHTML = '';
+        const recentActivities = state.atividades.sort((a, b) => new Date(b.data) - new Date(a.data)).slice(0, 5);
+        if (recentActivities.length > 0) {
+            recentActivities.forEach(a => listaRecentes.innerHTML += `<li class="flex items-center justify-between p-2 rounded hover:bg-gray-50"><div><p class="font-medium text-gray-800">${a.descricao}</p><p class="text-sm text-gray-500">${getAnalistaName(a.analistaId)} em ${getProjetoName(a.projetoId)}</p></div><div class="text-right"><p class="font-semibold text-gray-700">${formatCurrency(a.custo)}</p><p class="text-xs text-gray-400">${formatDate(a.data)}</p></div></li>`);
+        } else { listaRecentes.innerHTML = '<p class="text-center text-gray-500">Nenhuma atividade registrada.</p>'; }
+    }
+
+    function renderDetailsView(entityName, id) {
+        const item = state[entityName].find(i => i.id === id);
+        if (!item) { showView(entityName); return; }
+        
+        const view = document.getElementById('view-details');
+        const config = entityConfig[entityName];
+        
+        let detailsHtml = `<div class="bg-white p-6 rounded-lg shadow-md"><dl class="grid grid-cols-1 md:grid-cols-3 gap-x-4 gap-y-6">`;
+        for (const [key, label] of Object.entries(config.fields)) {
+            let value = item[key] || 'N/A';
+            if (key.includes('Id')) value = (key === 'contratoId' ? getContratoDesc(item[key]) : (key === 'fornecedorId' ? getFornecedorName(item[key]) : 'N/A'));
+            else if (key.includes('data')) value = formatDate(item[key]);
+            else if (label.includes('R$')) value = formatCurrency(item[key]);
+            detailsHtml += `<div class="col-span-1"><dt class="text-sm font-medium text-gray-500">${label}</dt><dd class="mt-1 text-lg text-gray-900">${value}</dd></div>`;
+        }
+        detailsHtml += `</dl></div>`;
+        
+        let relatedItemsHtml = '';
+        if (entityName === 'contratos') {
+            relatedItemsHtml += renderRelatedTable('Projetos Vinculados', state.projetos.filter(p => p.contratoId === id), entityConfig.projetos);
+            relatedItemsHtml += renderRelatedTable('Serviços Vinculados', state.servicos.filter(s => s.contratoId === id), entityConfig.servicos);
+        } else if (entityName === 'projetos') {
+            relatedItemsHtml += renderRelatedTable('Atividades do Projeto', state.atividades.filter(a => a.projetoId === id), entityConfig.atividades);
+        } else if (entityName === 'fornecedores') {
+            relatedItemsHtml += renderRelatedTable('Contratos Vinculados', state.contratos.filter(c => c.fornecedorId === id), entityConfig.contratos);
+            relatedItemsHtml += renderRelatedTable('Analistas Vinculados', state.analistas.filter(a => a.fornecedorId === id), entityConfig.analistas);
+        }
+        
+        view.innerHTML = `<div class="flex justify-between items-center mb-6"><h2 class="text-3xl font-bold text-gray-800">Detalhes de ${config.title}</h2><button onclick="showView('${entityName}')" class="bg-gray-500 text-white px-4 py-2 rounded-lg shadow hover:bg-gray-600 transition duration-300"><i class="fas fa-arrow-left mr-2"></i> Voltar</button></div>${detailsHtml}${relatedItemsHtml}`;
+    }
+
+    function renderRelatedTable(title, data, config) {
+        if (data.length === 0) return '';
+        let headers = Object.values(config.fields).map(h => `<th>${h}</th>`).join('') + (config.extraHeaders || '');
+        let rows = data.map(item => `<tr>${config.columns(item)}</tr>`).join('');
+        return `<div class="mt-6"><h3 class="text-2xl font-bold text-gray-800 mb-4">${title}</h3><div class="bg-white rounded-lg shadow overflow-x-auto"><table class="w-full table-auto"><thead class="bg-gray-50 border-b-2 border-gray-200"><tr>${headers}</tr></thead><tbody>${rows}</tbody></table></div></div>`;
+    }
+
+    // ---------- EXPORTAÇÃO PARA CSV ----------
+    function exportToCSV(entityName) {
+        const items = state[entityName];
+        if (items.length === 0) { alert('Não há dados para exportar.'); return; }
+        
+        const config = entityConfig[entityName];
+        const headers = Object.values(config.fields);
+        if (config.extraHeaders) { // Simplistic parsing of extra headers
+            config.extraHeaders.match(/<th>(.*?)<\/th>/g).forEach(h => headers.push(h.replace(/<\/?th>/g, '')));
+        }
+
+        const replacer = (key, value) => value === null ? '' : value;
+        
+        const csvRows = [
+            headers.join(','),
+            ...items.map(item => {
+                const rowData = [];
+                // This needs to be manually mapped to match the visual columns
+                if (entityName === 'atividades') {
+                    rowData.push(getProjetoName(item.projetoId));
+                    rowData.push(getAnalistaName(item.analistaId));
+                    rowData.push(getServicoName(item.servicoId));
+                    rowData.push(`"${item.descricao || ''}"`);
+                    rowData.push(formatDate(item.data));
+                    rowData.push(item.horaInicio || '');
+                    rowData.push(item.horaTermino || '');
+                    rowData.push((item.duracao || 0).toFixed(2));
+                    rowData.push(item.custo || 0);
+                } else { // Fallback for other entities
+                     Object.keys(config.fields).forEach(key => rowData.push(JSON.stringify(item[key] || '', replacer)));
+                }
+                return rowData.join(',');
+            })
+        ];
+        
+        const csvString = csvRows.join('\r\n');
+        const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+        
+        const link = document.createElement('a');
+        if (link.download !== undefined) {
+            const url = URL.createObjectURL(blob);
+            link.setAttribute('href', url);
+            link.setAttribute('download', `${entityName}_${new Date().toISOString().split('T')[0]}.csv`);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+    }
 </script>
 </body>
 </html>
