@@ -130,14 +130,11 @@ const firebaseConfig = {
   apiKey: "AIzaSyDFc5hzSOjBR9Mmbolc1edJFTQm3BKHFpw",
   authDomain: "gestorcontratosclm.firebaseapp.com",
   projectId: "gestorcontratosclm",
-  storageBucket: "gestorcontratosclm.firebasestorage.app",
+  storageBucket: "gestorcontratosclm.appspot.com",
   messagingSenderId: "538940293921",
   appId: "1:538940293921:web:a275a88061661fde98f460",
   measurementId: "G-JY1B4YX6ZJ"
 };
-
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
     
     // VERIFICAÇÃO DA CONFIGURAÇÃO ANTES DE INICIALIZAR
     if (firebaseConfig.apiKey.startsWith("COLE_AQUI")) {
@@ -296,7 +293,7 @@ const app = initializeApp(firebaseConfig);
     const entityConfig = {
         fornecedores: { title: "Fornecedores", fields: { nome: "Nome", cnpj: "CNPJ", contato: "Contato" }, columns: item => `<td><a href="#" class="text-blue-600 hover:underline" onclick="showView('details', {entity: 'fornecedores', id: '${item.id}'})">${item.nome}</a></td><td>${item.cnpj || ''}</td><td>${item.contato || ''}</td>` },
         contratos: { title: "Contratos", fields: { numeroContrato: "Nº Contrato", descricao: "Descrição", tipoContrato: "Tipo", fornecedorId: "Fornecedor", dataContratacao: "Contratação", periodo: "Período", valorMensal: "Valor Mensal" }, columns: item => `<td class="whitespace-nowrap"><a href="#" class="text-blue-600 hover:underline" onclick="showView('details', {entity: 'contratos', id: '${item.id}'})">${item.numeroContrato}</a></td><td class="truncate max-w-xs" title="${item.descricao}">${item.descricao}</td><td class="whitespace-nowrap">${item.tipoContrato || 'N/A'}</td><td class="whitespace-nowrap">${getFornecedorName(item.fornecedorId)}</td><td class="whitespace-nowrap">${formatDate(item.dataContratacao)}</td><td class="whitespace-nowrap text-center">${item.periodo}</td><td class="whitespace-nowrap">${formatCurrency(item.valorMensal)}</td><td class="whitespace-nowrap">${formatDate(DATE_ADD(item.dataContratacao, item.periodo))}</td>`, extraHeaders: '<th>Vencimento</th>' },
-        projetos: { title: "Projetos", fields: { nome: "Nome", contratoId: "Contrato", status: "Status", orcamentoTotal: "Orçamento (R$)", bancoHoras: "Horas Contratadas" }, optionalFields: ['orcamentoTotal', 'bancoHoras'], columns: item => { const {consumedCost, consumedHours} = calculateProjectConsumption(item.id); const orcamento = parseFloat(item.orcamentoTotal) || 0; const horas = parseFloat(item.bancoHoras) || 0; const costPercent = orcamento > 0 ? (consumedCost / orcamento * 100).toFixed(0) : 0; const hoursPercent = horas > 0 ? (consumedHours / horas * 100).toFixed(0) : 0; return `<td><a href="#" class="text-blue-600 hover:underline" onclick="showView('details', {entity: 'projetos', id: '${item.id}'})">${item.nome}</a></td><td class="truncate max-w-xs" title="${getContratoDesc(item.contratoId)}">${getContratoDesc(item.contratoId)}</td><td>${item.status}</td><td>${renderProgressBar(costPercent, `${formatCurrency(consumedCost)} / ${formatCurrency(orcamento)}`)}</td><td>${renderProgressBar(hoursPercent, `${consumedHours.toFixed(2)}h / ${horas.toFixed(2)}h`)}</td>`; }, extraHeaders: '<th>Consumo Orçamento</th><th>Consumo Horas</th>' },
+        projetos: { title: "Projetos", fields: { nome: "Nome", contratoId: "Contrato", status: "Status" }, optionalFields: ['orcamentoTotal', 'bancoHoras'], columns: item => { const {consumedCost, consumedHours} = calculateProjectConsumption(item.id); const orcamento = parseFloat(item.orcamentoTotal) || 0; const horas = parseFloat(item.bancoHoras) || 0; const costPercent = orcamento > 0 ? (consumedCost / orcamento * 100).toFixed(0) : 0; const hoursPercent = horas > 0 ? (consumedHours / horas * 100).toFixed(0) : 0; return `<td><a href="#" class="text-blue-600 hover:underline" onclick="showView('details', {entity: 'projetos', id: '${item.id}'})">${item.nome}</a></td><td class="truncate max-w-xs" title="${getContratoDesc(item.contratoId)}">${getContratoDesc(item.contratoId)}</td><td>${item.status}</td><td>${renderProgressBar(costPercent, `${formatCurrency(consumedCost)} / ${formatCurrency(orcamento)}`)}</td><td>${renderProgressBar(hoursPercent, `${consumedHours.toFixed(2)}h / ${horas.toFixed(2)}h`)}</td>`; }, extraHeaders: '<th>Consumo Orçamento</th><th>Consumo Horas</th>' },
         analistas: { title: "Analistas", fields: { nome: "Nome", fornecedorId: "Fornecedor", valorHoraEspecifico: "Valor Hora (R$)" }, columns: item => `<td>${item.nome}</td><td>${getFornecedorName(item.fornecedorId)}</td><td>${formatCurrency(item.valorHoraEspecifico)}</td>` },
         servicos: { title: "Serviços", fields: { nome: "Nome do Serviço", descricao: "Descrição", contratoId: "Contrato" }, columns: item => `<td>${item.nome}</td><td class="truncate max-w-md" title="${item.descricao}">${item.descricao}</td><td class="truncate max-w-xs" title="${getContratoDesc(item.contratoId)}">${getContratoDesc(item.contratoId)}</td>` },
         atividades: { title: "Atividades", fields: { projetoId: "Projeto", analistaId: "Analista", servicoId: "Serviço", descricao: "Descrição", data: "Data", horaInicio: "Hora Início", horaTermino: "Hora Término", valorEspecifico: "Valor Específico (R$)" }, optionalFields: ['analistaId', 'horaInicio', 'horaTermino', 'valorEspecifico'], columns: item => `<td class="whitespace-nowrap">${getProjetoName(item.projetoId)}</td><td class="whitespace-nowrap">${getAnalistaName(item.analistaId)}</td><td class="whitespace-nowrap">${getServicoName(item.servicoId)}</td><td class="truncate max-w-sm" title="${item.descricao}">${item.descricao}</td><td class="whitespace-nowrap">${formatDate(item.data)}</td><td class="whitespace-nowrap text-center">${item.horaInicio || '-'}</td><td class="whitespace-nowrap text-center">${item.horaTermino || '-'}</td><td class="whitespace-nowrap text-center">${formatCurrency(item.valorEspecifico)}</td><td class="whitespace-nowrap text-center">${(item.duracao || 0).toFixed(2)}h</td><td class="whitespace-nowrap">${formatCurrency(item.custo)}</td>`, extraHeaders: '<th>Duração</th><th>Custo</th>' }
@@ -628,5 +625,3 @@ const app = initializeApp(firebaseConfig);
 </script>
 </body>
 </html>
-
-
