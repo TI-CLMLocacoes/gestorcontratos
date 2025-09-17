@@ -304,7 +304,14 @@ const firebaseConfig = {
         const view = document.getElementById(`view-${entityName}`);
         
         let tableHeaders = Object.values(config.fields).map(h => `<th>${h}</th>`).join('');
-        if (config.extraHeaders) tableHeaders += config.extraHeaders;
+        
+        // Corrige a adição de cabeçalhos extras para a tabela de projetos
+        if (entityName === 'projetos') {
+            tableHeaders = `<th>Nome</th><th>Contrato</th><th>Status</th><th>Consumo Orçamento</th><th>Consumo Horas</th>`;
+        } else if (config.extraHeaders) {
+            tableHeaders += config.extraHeaders;
+        }
+
 
         view.innerHTML = `<div class="flex justify-between items-center mb-6"><h2 class="text-3xl font-bold text-gray-800">${config.title}</h2><div class="flex space-x-2"><button onclick="exportToCSV('${entityName}')" class="bg-green-600 text-white px-4 py-2 rounded-lg shadow hover:bg-green-700 transition duration-300"><i class="fas fa-file-csv mr-2"></i> Exportar</button><button onclick="showForm('${entityName}')" class="bg-blue-600 text-white px-4 py-2 rounded-lg shadow hover:bg-blue-700 transition duration-300"><i class="fas fa-plus mr-2"></i> Adicionar</button></div></div><div class="bg-white rounded-lg shadow overflow-x-auto"><table class="w-full table-auto"><thead class="bg-gray-50 border-b-2 border-gray-200"><tr>${tableHeaders}<th>Ações</th></tr></thead><tbody id="${entityName}-table-body"></tbody></table></div>`;
         const tableBody = document.getElementById(`${entityName}-table-body`);
