@@ -306,6 +306,9 @@ const firebaseConfig = {
     // ---------- FUNÇÕES DE AUTENTICAÇÃO ----------
     async function handleLogin(e) {
         e.preventDefault();
+        const loadingOverlay = document.getElementById('loading-overlay');
+        loadingOverlay.classList.remove('hidden');
+
         const email = document.getElementById('login-email').value;
         const password = document.getElementById('login-password').value;
         const errorDiv = document.getElementById('auth-error');
@@ -318,11 +321,16 @@ const firebaseConfig = {
             errorMessage.textContent = "Email ou palavra-passe inválidos.";
             errorDiv.classList.remove('hidden');
             console.error("Erro de login:", error.message);
+        } finally {
+            loadingOverlay.classList.add('hidden');
         }
     }
 
     async function handleRegister(e) {
         e.preventDefault();
+        const loadingOverlay = document.getElementById('loading-overlay');
+        loadingOverlay.classList.remove('hidden');
+        
         const email = document.getElementById('register-email').value;
         const password = document.getElementById('register-password').value;
         const errorDiv = document.getElementById('register-error');
@@ -331,6 +339,7 @@ const firebaseConfig = {
         if (password.length < 6) {
             errorMessage.textContent = "A palavra-passe deve ter pelo menos 6 caracteres.";
             errorDiv.classList.remove('hidden');
+            loadingOverlay.classList.add('hidden');
             return;
         }
 
@@ -345,6 +354,8 @@ const firebaseConfig = {
             }
             errorDiv.classList.remove('hidden');
             console.error("Erro de registo:", error.message);
+        } finally {
+            loadingOverlay.classList.add('hidden');
         }
     }
     
