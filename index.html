@@ -131,22 +131,23 @@
                     <span class="text-2xl font-extrabold">Gestor Integrado</span>
                 </a>
                 <nav>
-                    <a href="#" onclick="showView('dashboard-linhas')" class="nav-link block py-2.5 px-4 rounded transition duration-200 hover:bg-gray-700 bg-gray-700"><i class="fas fa-chart-pie mr-2"></i>Dashboard Linhas</a>
-                    <a href="#" onclick="showView('dashboard-ti')" class="nav-link block py-2.5 px-4 rounded transition duration-200 hover:bg-gray-700"><i class="fas fa-chart-line mr-2"></i>Dashboard TI</a>
+                    <p class="px-4 text-xs text-gray-400 uppercase mb-2">Dashboards</p>
+                    <a href="#" onclick="showView('dashboard-linhas')" class="nav-link block py-2.5 px-4 rounded transition duration-200 hover:bg-gray-700 bg-gray-700"><i class="fas fa-chart-pie mr-2"></i>Linhas Móveis</a>
+                    <a href="#" onclick="showView('dashboard-ti')" class="nav-link block py-2.5 px-4 rounded transition duration-200 hover:bg-gray-700"><i class="fas fa-chart-line mr-2"></i>Contratos de TI</a>
                     <hr class="my-4 border-gray-600">
-                     <p class="px-4 text-xs text-gray-400 uppercase mb-2">Operações</p>
-                    <a href="#" onclick="showView('linhas')" class="nav-link block py-2.5 px-4 rounded transition duration-200 hover:bg-gray-700"><i class="fas fa-sim-card mr-2"></i>Linhas Móveis</a>
-                    <a href="#" onclick="showView('atividades')" class="nav-link block py-2.5 px-4 rounded transition duration-200 hover:bg-gray-700"><i class="fas fa-stopwatch mr-2"></i>Atividades de TI</a>
-                    <a href="#" onclick="showView('projetos')" class="nav-link block py-2.5 px-4 rounded transition duration-200 hover:bg-gray-700"><i class="fas fa-project-diagram mr-2"></i>Projetos de TI</a>
-                    <a href="#" onclick="showView('contratos')" class="nav-link block py-2.5 px-4 rounded transition duration-200 hover:bg-gray-700"><i class="fas fa-file-signature mr-2"></i>Contratos</a>
-                    <hr class="my-4 border-gray-600">
-                    <p class="px-4 text-xs text-gray-400 uppercase mb-2">Configurações</p>
-                    <a href="#" onclick="showView('servicos')" class="nav-link block py-2.5 px-4 rounded transition duration-200 hover:bg-gray-700"><i class="fas fa-concierge-bell mr-2"></i>Serviços de TI</a>
+                    <p class="px-4 text-xs text-gray-400 uppercase mb-2">Gestão de Linhas Móveis</p>
+                    <a href="#" onclick="showView('linhas')" class="nav-link block py-2.5 px-4 rounded transition duration-200 hover:bg-gray-700"><i class="fas fa-sim-card mr-2"></i>Linhas</a>
                     <a href="#" onclick="showView('operadoras')" class="nav-link block py-2.5 px-4 rounded transition duration-200 hover:bg-gray-700"><i class="fas fa-broadcast-tower mr-2"></i>Operadoras</a>
-                    <a href="#" onclick="showView('fornecedores')" class="nav-link block py-2.5 px-4 rounded transition duration-200 hover:bg-gray-700"><i class="fas fa-building mr-2"></i>Fornecedores de TI</a>
-                    <a href="#" onclick="showView('analistas')" class="nav-link block py-2.5 px-4 rounded transition duration-200 hover:bg-gray-700"><i class="fas fa-users-cog mr-2"></i>Analistas de TI</a>
                     <a href="#" onclick="showView('setores')" class="nav-link block py-2.5 px-4 rounded transition duration-200 hover:bg-gray-700"><i class="fas fa-sitemap mr-2"></i>Setores</a>
                     <a href="#" onclick="showView('usuarios')" class="nav-link block py-2.5 px-4 rounded transition duration-200 hover:bg-gray-700"><i class="fas fa-users mr-2"></i>Usuários</a>
+                    <hr class="my-4 border-gray-600">
+                    <p class="px-4 text-xs text-gray-400 uppercase mb-2">Gestão de Contratos de TI</p>
+                    <a href="#" onclick="showView('atividades')" class="nav-link block py-2.5 px-4 rounded transition duration-200 hover:bg-gray-700"><i class="fas fa-stopwatch mr-2"></i>Atividades</a>
+                    <a href="#" onclick="showView('projetos')" class="nav-link block py-2.5 px-4 rounded transition duration-200 hover:bg-gray-700"><i class="fas fa-project-diagram mr-2"></i>Projetos</a>
+                    <a href="#" onclick="showView('contratos')" class="nav-link block py-2.5 px-4 rounded transition duration-200 hover:bg-gray-700"><i class="fas fa-file-signature mr-2"></i>Contratos</a>
+                    <a href="#" onclick="showView('servicos')" class="nav-link block py-2.5 px-4 rounded transition duration-200 hover:bg-gray-700"><i class="fas fa-concierge-bell mr-2"></i>Serviços</a>
+                    <a href="#" onclick="showView('fornecedores')" class="nav-link block py-2.5 px-4 rounded transition duration-200 hover:bg-gray-700"><i class="fas fa-building mr-2"></i>Fornecedores</a>
+                    <a href="#" onclick="showView('analistas')" class="nav-link block py-2.5 px-4 rounded transition duration-200 hover:bg-gray-700"><i class="fas fa-users-cog mr-2"></i>Analistas</a>
                 </nav>
             </aside>
 
@@ -492,7 +493,7 @@ const firebaseConfig = {
     const entityConfig = {
         fornecedores: { title: "Fornecedores de TI", fields: { nome: "Nome", cnpj: "CNPJ", contato: "Contato" }, columns: item => `<td><a href="#" class="text-blue-600 hover:underline" onclick="showView('details', {entity: 'fornecedores', id: '${item.id}'})">${item.nome}</a></td><td>${item.cnpj || ''}</td><td>${item.contato || ''}</td>` },
         contratos: { title: "Contratos", fields: { numeroContrato: "Nº Contrato", descricao: "Descrição", tipoContrato: "Tipo", fornecedorId: "Fornecedor", dataContratacao: "Contratação", periodo: "Período", valorMensal: "Valor Mensal" }, columns: item => `<td class="whitespace-nowrap"><a href="#" class="text-blue-600 hover:underline" onclick="showView('details', {entity: 'contratos', id: '${item.id}'})">${item.numeroContrato}</a></td><td class="truncate max-w-xs" title="${item.descricao}">${item.descricao}</td><td class="whitespace-nowrap">${item.tipoContrato || 'N/A'}</td><td class="whitespace-nowrap">${getRelationName(item.fornecedorId, 'fornecedores')}</td><td class="whitespace-nowrap">${formatDate(item.dataContratacao)}</td><td class="whitespace-nowrap text-center">${item.periodo}</td><td class="whitespace-nowrap">${formatCurrency(item.valorMensal)}</td><td class="whitespace-nowrap">${formatDate(DATE_ADD(item.dataContratacao, item.periodo))}</td>`, extraHeaders: '<th>Vencimento</th>' },
-        projetos: { title: "Projetos de TI", fields: { nome: "Nome", contratoId: "Contrato", status: "Status", orcamentoTotal: "Orçamento (R$)", bancoHoras: "Horas Contratadas" }, optionalFields: ['orcamentoTotal', 'bancoHoras'], columns: item => { const {consumedCost, consumedHours} = calculateProjectConsumption(item.id); const orcamento = parseFloat(item.orcamentoTotal) || 0; const horas = parseFloat(item.bancoHoras) || 0; const costPercent = orcamento > 0 ? (consumedCost / orcamento * 100).toFixed(0) : 0; const hoursPercent = horas > 0 ? (consumedHours / horas * 100).toFixed(0) : 0; return `<td><a href="#" class="text-blue-600 hover:underline" onclick="showView('details', {entity: 'projetos', id: '${item.id}'})">${item.nome}</a></td><td class="truncate max-w-xs" title="${getRelationName(item.contratoId, 'contratos', 'descricao')}">${getRelationName(item.contratoId, 'contratos', 'descricao')}</td><td>${item.status}</td><td>${renderProgressBar(costPercent, `${formatCurrency(consumedCost)} / ${formatCurrency(orcamento)}`)}</td><td>${renderProgressBar(hoursPercent, `${consumedHours.toFixed(2)}h / ${horas.toFixed(2)}h`)}</td>`; }, extraHeaders: '<th>Consumo Orçamento</th><th>Consumo Horas</th>' },
+        projetos: { title: "Projetos de TI", fields: { nome: "Nome", contratoId: "Contrato", status: "Status", orcamentoTotal: "Orçamento (R$)", bancoHoras: "Horas Contratadas" }, optionalFields: ['orcamentoTotal', 'bancoHoras'], columns: item => { const {consumedCost, consumedHours} = calculateProjectConsumption(item.id); const orcamento = parseFloat(item.orcamentoTotal) || 0; const horas = parseFloat(item.bancoHoras) || 0; const costPercent = orcamento > 0 ? (consumedCost / orcamento * 100).toFixed(0) : 0; const hoursPercent = horas > 0 ? (consumedHours / horas * 100).toFixed(0) : 0; return `<td><a href="#" class="text-blue-600 hover:underline" onclick="showView('details', {entity: 'projetos', id: '${item.id}'})">${item.nome}</a></td><td class="truncate max-w-xs" title="${getRelationName(item.contratoId, 'contratos', 'descricao')}">${getRelationName(item.contratoId, 'contratos', 'descricao')}</td><td>${item.status}</td><td>${renderProgressBar(costPercent, `${formatCurrency(consumedCost)} / ${formatCurrency(orcamento)}`)}</td><td>${renderProgressBar(hoursPercent, `${consumedHours.toFixed(2)}h / ${horas.toFixed(2)}h`)}</td>`; } },
         analistas: { title: "Analistas de TI", fields: { nome: "Nome", fornecedorId: "Fornecedor de TI", valorHoraEspecifico: "Valor Hora (R$)" }, columns: item => `<td>${item.nome}</td><td>${getRelationName(item.fornecedorId, 'fornecedores')}</td><td>${formatCurrency(item.valorHoraEspecifico)}</td>` },
         servicos: { title: "Serviços de TI", fields: { nome: "Nome do Serviço", descricao: "Descrição", contratoId: "Contrato" }, columns: item => `<td>${item.nome}</td><td class="truncate max-w-md" title="${item.descricao}">${item.descricao}</td><td class="truncate max-w-xs" title="${getRelationName(item.contratoId, 'contratos', 'descricao')}">${getRelationName(item.contratoId, 'contratos', 'descricao')}</td>` },
         atividades: { title: "Atividades de TI", fields: { projetoId: "Projeto", analistaId: "Analista", servicoId: "Serviço", descricao: "Descrição", data: "Data", horaInicio: "Hora Início", horaTermino: "Hora Término", valorEspecifico: "Valor Específico (R$)" }, optionalFields: ['analistaId', 'horaInicio', 'horaTermino', 'valorEspecifico'], columns: item => `<td class="whitespace-nowrap">${getRelationName(item.projetoId, 'projetos')}</td><td class="whitespace-nowrap">${getRelationName(item.analistaId, 'analistas')}</td><td class="whitespace-nowrap">${getRelationName(item.servicoId, 'servicos')}</td><td class="truncate max-w-sm" title="${item.descricao}">${item.descricao}</td><td class="whitespace-nowrap">${formatDate(item.data)}</td><td class="whitespace-nowrap text-center">${item.horaInicio || '-'}</td><td class="whitespace-nowrap text-center">${item.horaTermino || '-'}</td><td class="whitespace-nowrap text-center">${formatCurrency(item.valorEspecifico)}</td><td class="whitespace-nowrap text-center">${(item.duracao || 0).toFixed(2)}h</td><td class="whitespace-nowrap">${formatCurrency(item.custo)}</td>`, extraHeaders: '<th>Duração</th><th>Custo</th>' },
@@ -508,6 +509,11 @@ const firebaseConfig = {
         
         let tableHeaders = Object.values(config.fields).map(h => `<th>${h}</th>`).join('');
         if (config.extraHeaders) tableHeaders += config.extraHeaders;
+
+        if (entityName === 'projetos') {
+             tableHeaders = `<th>Nome</th><th>Contrato</th><th>Status</th><th>Consumo Orçamento</th><th>Consumo Horas</th>`;
+        }
+
 
         view.innerHTML = `<div class="flex justify-between items-center mb-6"><h2 class="text-3xl font-bold text-gray-800">${config.title}</h2><div class="flex space-x-2"><button onclick="exportToCSV('${entityName}')" class="bg-green-600 text-white px-4 py-2 rounded-lg shadow hover:bg-green-700 transition duration-300"><i class="fas fa-file-csv mr-2"></i> Exportar</button><button onclick="showForm('${entityName}')" class="bg-blue-600 text-white px-4 py-2 rounded-lg shadow hover:bg-blue-700 transition duration-300"><i class="fas fa-plus mr-2"></i> Adicionar</button></div></div><div class="bg-white rounded-xl shadow overflow-x-auto"><table class="w-full table-auto"><thead class="bg-gray-50 border-b-2 border-gray-200"><tr>${tableHeaders}<th>Ações</th></tr></thead><tbody id="${entityName}-table-body"></tbody></table></div>`;
         const tableBody = document.getElementById(`${entityName}-table-body`);
@@ -785,11 +791,41 @@ const firebaseConfig = {
     }
 
     function renderDetailsView(entityName, id) {
-        // A lógica de detalhes pode ser expandida para as novas entidades se necessário
+        const item = state[entityName].find(i => i.id === id);
+        if (!item) { showView(entityName); return; }
+        
+        const view = document.getElementById('view-details');
+        const config = entityConfig[entityName];
+        
+        let detailsHtml = `<div class="bg-white p-6 rounded-lg shadow-md"><dl class="grid grid-cols-1 md:grid-cols-3 gap-x-4 gap-y-6">`;
+        for (const [key, label] of Object.entries(config.fields)) {
+            let value = item[key] || 'N/A';
+            if (key.includes('Id')) value = getRelationName(item[key], key.replace('Id', '') + 's', config.fields[key].includes('Contrato') ? 'descricao' : 'nome');
+            else if (key.includes('data')) value = formatDate(item[key]);
+            else if (label.includes('R$')) value = formatCurrency(item[key]);
+            detailsHtml += `<div class="col-span-1"><dt class="text-sm font-medium text-gray-500">${label}</dt><dd class="mt-1 text-lg text-gray-900">${value}</dd></div>`;
+        }
+        detailsHtml += `</dl></div>`;
+        
+        let relatedItemsHtml = '';
+        if (entityName === 'contratos') {
+            relatedItemsHtml += renderRelatedTable('Projetos Vinculados', state.projetos.filter(p => p.contratoId === id), entityConfig.projetos);
+            relatedItemsHtml += renderRelatedTable('Serviços Vinculados', state.servicos.filter(s => s.contratoId === id), entityConfig.servicos);
+        } else if (entityName === 'projetos') {
+            relatedItemsHtml += renderRelatedTable('Atividades do Projeto', state.atividades.filter(a => a.projetoId === id), entityConfig.atividades);
+        } else if (entityName === 'fornecedores') {
+            relatedItemsHtml += renderRelatedTable('Contratos Vinculados', state.contratos.filter(c => c.fornecedorId === id), entityConfig.contratos);
+            relatedItemsHtml += renderRelatedTable('Analistas Vinculados', state.analistas.filter(a => a.fornecedorId === id), entityConfig.analistas);
+        }
+        
+        view.innerHTML = `<div class="flex justify-between items-center mb-6"><h2 class="text-3xl font-bold text-gray-800">Detalhes de ${config.title}</h2><button onclick="showView('${entityName}')" class="bg-gray-500 text-white px-4 py-2 rounded-lg shadow hover:bg-gray-600 transition duration-300"><i class="fas fa-arrow-left mr-2"></i> Voltar</button></div>${detailsHtml}${relatedItemsHtml}`;
     }
 
     function renderRelatedTable(title, data, config) {
-        // A lógica de tabelas relacionadas pode ser expandida se necessário
+        if (data.length === 0) return '';
+        let headers = Object.values(config.fields).map(h => `<th>${h}</th>`).join('') + (config.extraHeaders || '');
+        let rows = data.map(item => `<tr>${config.columns(item)}</tr>`).join('');
+        return `<div class="mt-6"><h3 class="text-2xl font-bold text-gray-800 mb-4">${title}</h3><div class="bg-white rounded-lg shadow overflow-x-auto"><table class="w-full table-auto"><thead class="bg-gray-50 border-b-2 border-gray-200"><tr>${headers}</tr></thead><tbody>${rows}</tbody></table></div></div>`;
     }
 
     // ---------- EXPORTAÇÃO PARA CSV ----------
