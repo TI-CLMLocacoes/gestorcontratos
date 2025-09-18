@@ -78,6 +78,9 @@
         <div id="main-content" class="flex-1 flex flex-col overflow-hidden main-content">
             <header class="flex justify-between md:justify-end items-center p-4 bg-white border-b-2">
                  <button id="menu-button" class="text-gray-500 focus:outline-none md:hidden"><i class="fas fa-bars text-2xl"></i></button>
+                 <div id="header-actions" class="flex items-center space-x-4">
+                    <!-- Botão de migração foi removido -->
+                 </div>
                 <h1 class="text-xl font-semibold text-gray-800">Gestão de Contratos e Atividades</h1>
             </header>
             
@@ -122,7 +125,7 @@
 <script type="module">
     // ---------- IMPORTS E CONFIGURAÇÃO DO FIREBASE ----------
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import { getFirestore, collection, onSnapshot, addDoc, doc, setDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import { getFirestore, collection, onSnapshot, addDoc, doc, setDoc, deleteDoc, writeBatch } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
     import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 // For Firebase JS SDK v7.20.0 and later, measurementId is optional
@@ -147,7 +150,7 @@ const firebaseConfig = {
             </div>
         `;
     } else {
-        // Inicialização do Firebase
+        // Inicialização do Firebase (uma única vez)
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
         const auth = getAuth(app);
@@ -305,7 +308,6 @@ const firebaseConfig = {
         
         let tableHeaders = Object.values(config.fields).map(h => `<th>${h}</th>`).join('');
         
-        // Corrige a adição de cabeçalhos extras para a tabela de projetos
         if (entityName === 'projetos') {
             tableHeaders = `<th>Nome</th><th>Contrato</th><th>Status</th><th>Consumo Orçamento</th><th>Consumo Horas</th>`;
         } else if (config.extraHeaders) {
