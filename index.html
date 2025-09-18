@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gestor de Contratos de TI</title>
+    <title>Gestor Integrado de TI</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -66,7 +66,7 @@
         <div class="w-full max-w-md bg-white rounded-lg shadow-md p-8">
             <div class="text-center mb-8">
                  <i class="fas fa-tasks text-4xl text-blue-600"></i>
-                <h1 class="text-3xl font-extrabold text-gray-800 mt-2">Gestor TI</h1>
+                <h1 class="text-3xl font-extrabold text-gray-800 mt-2">Gestor Integrado</h1>
             </div>
             
             <div id="auth-error" class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4 hidden" role="alert">
@@ -131,7 +131,10 @@
                     <span class="text-2xl font-extrabold">Gestor Integrado</span>
                 </a>
                 <nav>
-                    <a href="#" onclick="showView('dashboard')" class="nav-link block py-2.5 px-4 rounded transition duration-200 hover:bg-gray-700 bg-gray-700"><i class="fas fa-chart-pie mr-2"></i>Visão Geral</a>
+                    <a href="#" onclick="showView('dashboard-linhas')" class="nav-link block py-2.5 px-4 rounded transition duration-200 hover:bg-gray-700 bg-gray-700"><i class="fas fa-chart-pie mr-2"></i>Dashboard Linhas</a>
+                    <a href="#" onclick="showView('dashboard-ti')" class="nav-link block py-2.5 px-4 rounded transition duration-200 hover:bg-gray-700"><i class="fas fa-chart-line mr-2"></i>Dashboard TI</a>
+                    <hr class="my-4 border-gray-600">
+                     <p class="px-4 text-xs text-gray-400 uppercase mb-2">Operações</p>
                     <a href="#" onclick="showView('linhas')" class="nav-link block py-2.5 px-4 rounded transition duration-200 hover:bg-gray-700"><i class="fas fa-sim-card mr-2"></i>Linhas Móveis</a>
                     <a href="#" onclick="showView('atividades')" class="nav-link block py-2.5 px-4 rounded transition duration-200 hover:bg-gray-700"><i class="fas fa-stopwatch mr-2"></i>Atividades de TI</a>
                     <a href="#" onclick="showView('projetos')" class="nav-link block py-2.5 px-4 rounded transition duration-200 hover:bg-gray-700"><i class="fas fa-project-diagram mr-2"></i>Projetos de TI</a>
@@ -158,18 +161,40 @@
                 </header>
                 
                 <main class="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 p-6">
-                    <!-- VIEW: Dashboard -->
-                    <div id="view-dashboard" class="view">
+                    <!-- VIEW: Dashboard Linhas -->
+                    <div id="view-dashboard-linhas" class="view">
                         <h2 class="text-3xl font-bold mb-6 text-gray-800">Visão Geral - Linhas Móveis</h2>
                         <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
                              <div class="bg-white p-5 rounded-xl shadow-md stat-card transition-transform duration-300"><div class="flex items-center"><div class="bg-red-500 text-white rounded-full p-3 mr-4"><i class="fas fa-exclamation-triangle fa-2x"></i></div><div><p class="text-sm text-gray-500">Linhas a Cancelar</p><p id="stat-cancelar" class="text-3xl font-bold text-gray-800">0</p></div></div></div>
                              <div class="bg-white p-5 rounded-xl shadow-md stat-card transition-transform duration-300"><div class="flex items-center"><div class="bg-green-500 text-white rounded-full p-3 mr-4"><i class="fas fa-check-circle fa-2x"></i></div><div><p class="text-sm text-gray-500">Total de Linhas Ativas</p><p id="stat-ativas" class="text-3xl font-bold text-gray-800">0</p></div></div></div>
-                             <div class="bg-white p-5 rounded-xl shadow-md stat-card transition-transform duration-300"><div class="flex items-center"><div class="bg-blue-500 text-white rounded-full p-3 mr-4"><i class="fas fa-dollar-sign fa-2x"></i></div><div><p class="text-sm text-gray-500">Custo Mensal Total</p><p id="stat-custo-total" class="text-3xl font-bold text-gray-800">R$ 0,00</p></div></div></div>
+                             <div class="bg-white p-5 rounded-xl shadow-md stat-card transition-transform duration-300"><div class="flex items-center"><div class="bg-blue-500 text-white rounded-full p-3 mr-4"><i class="fas fa-dollar-sign fa-2x"></i></div><div><p class="text-sm text-gray-500">Custo Mensal Total</p><p id="stat-custo-total-linhas" class="text-3xl font-bold text-gray-800">R$ 0,00</p></div></div></div>
                              <div class="bg-white p-5 rounded-xl shadow-md stat-card transition-transform duration-300"><div class="flex items-center"><div class="bg-yellow-500 text-white rounded-full p-3 mr-4"><i class="fas fa-box-open fa-2x"></i></div><div><p class="text-sm text-gray-500">Linhas Disponíveis</p><p id="stat-disponiveis" class="text-3xl font-bold text-gray-800">0</p></div></div></div>
                         </div>
                         <div class="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-6">
                             <div class="bg-white p-6 rounded-xl shadow-md"><h3 class="font-bold text-gray-700 mb-4">Custo de Linhas por Setor</h3><div id="chart-custo-setor" class="space-y-4"></div></div>
                             <div class="bg-white p-6 rounded-xl shadow-md"><h3 class="font-bold text-gray-700 mb-4">Total de Linhas por Setor</h3><div id="chart-linhas-setor" class="space-y-4"></div></div>
+                        </div>
+                    </div>
+
+                    <!-- VIEW: Dashboard TI -->
+                    <div id="view-dashboard-ti" class="view hidden">
+                        <div class="flex justify-between items-center mb-6">
+                            <h2 class="text-3xl font-bold text-gray-800">Visão Geral - TI</h2>
+                            <div id="dashboard-ti-filters" class="flex space-x-2">
+                                <button onclick="renderDashboardTI('currentMonth')" class="db-filter-btn-ti bg-blue-600 text-white px-3 py-1 rounded-md text-sm">Este Mês</button>
+                                <button onclick="renderDashboardTI('lastMonth')" class="db-filter-btn-ti bg-white text-gray-700 px-3 py-1 rounded-md text-sm border">Mês Passado</button>
+                                <button onclick="renderDashboardTI('last90days')" class="db-filter-btn-ti bg-white text-gray-700 px-3 py-1 rounded-md text-sm border">Últimos 90 dias</button>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
+                            <div class="bg-white p-5 rounded-xl shadow-md stat-card transition-transform duration-300"><div class="flex items-center"><div class="bg-blue-500 text-white rounded-full p-3 mr-4"><i class="fas fa-dollar-sign fa-2x"></i></div><div><p class="text-sm text-gray-500">Custo Total (Período)</p><p id="stat-custo-total-ti" class="text-3xl font-bold text-gray-800">R$ 0,00</p></div></div></div>
+                            <div class="bg-white p-5 rounded-xl shadow-md stat-card transition-transform duration-300"><div class="flex items-center"><div class="bg-green-500 text-white rounded-full p-3 mr-4"><i class="fas fa-clock fa-2x"></i></div><div><p class="text-sm text-gray-500">Horas Totais (Período)</p><p id="stat-horas-totais-ti" class="text-3xl font-bold text-gray-800">0.00h</p></div></div></div>
+                            <div class="bg-white p-5 rounded-xl shadow-md stat-card transition-transform duration-300"><div class="flex items-center"><div class="bg-yellow-500 text-white rounded-full p-3 mr-4"><i class="fas fa-project-diagram fa-2x"></i></div><div><p class="text-sm text-gray-500">Projetos Ativos</p><p id="stat-projetos-ativos-ti" class="text-3xl font-bold text-gray-800">0</p></div></div></div>
+                            <div class="bg-white p-5 rounded-xl shadow-md stat-card transition-transform duration-300"><div class="flex items-center"><div class="bg-red-500 text-white rounded-full p-3 mr-4"><i class="fas fa-file-signature fa-2x"></i></div><div><p class="text-sm text-gray-500">Contratos Vencendo</p><p id="stat-contratos-vencendo-ti" class="text-3xl font-bold text-gray-800">0</p></div></div></div>
+                        </div>
+                        <div class="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-6">
+                            <div class="bg-white p-6 rounded-xl shadow-md"><h3 class="font-bold text-gray-700 mb-4">Custo por Projeto (Período)</h3><div id="chart-custo-projeto-ti" class="space-y-4"></div></div>
+                            <div class="bg-white p-6 rounded-xl shadow-md"><h3 class="font-bold text-gray-700 mb-4">Atividades Recentes</h3><ul id="lista-atividades-recentes-ti" class="space-y-4"></ul></div>
                         </div>
                     </div>
 
@@ -212,6 +237,7 @@ const firebaseConfig = {
 
     // Variáveis globais para instâncias do Firebase
     let db, auth;
+    let authReady = false;
 
     // VERIFICAÇÃO DA CONFIGURAÇÃO ANTES DE INICIALIZAR
     if (firebaseConfig.apiKey.startsWith("COLE_AQUI")) {
@@ -232,22 +258,8 @@ const firebaseConfig = {
 
             // ---------- AUTENTICAÇÃO E INICIALIZAÇÃO ----------
             onAuthStateChanged(auth, (user) => {
-                const initialLoading = document.getElementById('initial-loading-overlay');
-                initialLoading.classList.add('hidden');
-
-                if (user && !user.isAnonymous) {
-                    userId = user.uid;
-                    document.getElementById('user-email').textContent = user.email;
-                    document.getElementById('login-view').classList.add('hidden');
-                    document.getElementById('register-view').classList.add('hidden');
-                    document.getElementById('app-view').classList.remove('hidden');
-                    loadAllData();
-                } else {
-                    userId = null;
-                    document.getElementById('app-view').classList.add('hidden');
-                    document.getElementById('register-view').classList.add('hidden');
-                    document.getElementById('login-view').classList.remove('hidden');
-                }
+                authReady = true;
+                handleAuthState(user);
             });
         } catch (error) {
             console.error("Erro ao inicializar o Firebase:", error);
@@ -255,9 +267,31 @@ const firebaseConfig = {
             initialLoading.innerHTML = `<div class="text-center p-4 bg-white rounded-lg shadow-lg"><p class="text-red-500">Erro crítico ao inicializar a aplicação. Verifique a consola (F12) para mais detalhes.</p></div>`;
         }
     }
+    
+    function handleAuthState(user) {
+        if (!authReady) return;
+
+        const initialLoading = document.getElementById('initial-loading-overlay');
+        initialLoading.classList.add('hidden');
+
+        if (user && !user.isAnonymous) {
+            userId = user.uid;
+            document.getElementById('user-email').textContent = user.email;
+            document.getElementById('login-view').classList.add('hidden');
+            document.getElementById('register-view').classList.add('hidden');
+            document.getElementById('app-view').classList.remove('hidden');
+            loadAllData();
+        } else {
+            userId = null;
+            document.getElementById('app-view').classList.add('hidden');
+            document.getElementById('register-view').classList.add('hidden');
+            document.getElementById('login-view').classList.remove('hidden');
+        }
+    }
+
 
     // Variáveis globais da aplicação
-    let currentView = 'dashboard';
+    let currentView = 'dashboard-linhas';
     let userId = null;
 
     const state = {
@@ -268,7 +302,8 @@ const firebaseConfig = {
     
     // Anexa as funções ao objeto window para que possam ser chamadas pelo HTML (onclick)
     window.showView = showView;
-    window.renderDashboard = renderDashboard;
+    window.renderDashboardLinhas = renderDashboardLinhas;
+    window.renderDashboardTI = renderDashboardTI;
     window.showForm = showForm;
     window.deleteItem = deleteItem;
     window.closeModal = closeModal;
@@ -279,7 +314,6 @@ const firebaseConfig = {
 
     document.addEventListener('DOMContentLoaded', () => {
         setupEventListeners();
-        showView('dashboard');
     });
 
     function setupEventListeners() {
@@ -396,8 +430,9 @@ const firebaseConfig = {
                 
                 if (currentView === entityName) {
                     renderEntityListView(entityName);
-                } else if (currentView === 'dashboard') {
-                    renderDashboard();
+                } else if (currentView.startsWith('dashboard')) {
+                    renderDashboardTI();
+                    renderDashboardLinhas();
                 } else if (currentView.startsWith('details')) {
                     const [_, entity, id] = currentView.split(':');
                     renderDetailsView(entity, id);
@@ -421,12 +456,13 @@ const firebaseConfig = {
         if(activeView) {
             activeView.classList.remove('hidden');
             
-            if (viewName !== 'dashboard') {
+            if (!viewName.startsWith('dashboard')) {
                 activeView.innerHTML = ''; 
             }
 
             switch(viewName) {
-                case 'dashboard': renderDashboard(); break;
+                case 'dashboard-linhas': renderDashboardLinhas(); break;
+                case 'dashboard-ti': renderDashboardTI(); break;
                 case 'details': renderDetailsView(detailsId.entity, detailsId.id); break;
                 default: renderEntityListView(viewName); break;
             }
@@ -660,9 +696,8 @@ const firebaseConfig = {
     function formatCurrency(value) { return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(parseFloat(value) || 0); }
     function formatDate(dateString) { if (!dateString) return 'N/A'; const date = new Date(dateString); const adjustedDate = new Date(date.getTime() + Math.abs(date.getTimezoneOffset()*60000)); return adjustedDate.toLocaleDateString('pt-BR'); }
 
-    // ---------- RENDERIZAÇÃO DO DASHBOARD E DETALHES ----------
-    function renderDashboard() {
-        // Lógica do dashboard de linhas móveis
+    // ---------- RENDERIZAÇÃO DOS DASHBOARDS E DETALHES ----------
+    function renderDashboardLinhas() {
         const expiringLines = state.linhas.filter(l => isExpiringSoon(l.dataRenovacao) && l.status === 'Ativa');
         const activeLines = state.linhas.filter(l => l.status === 'Ativa');
         const totalCost = activeLines.reduce((sum, l) => sum + (parseFloat(l.custoMensal) || 0), 0);
@@ -670,7 +705,7 @@ const firebaseConfig = {
 
         document.getElementById('stat-cancelar').textContent = expiringLines.length;
         document.getElementById('stat-ativas').textContent = activeLines.length;
-        document.getElementById('stat-custo-total').textContent = formatCurrency(totalCost);
+        document.getElementById('stat-custo-total-linhas').textContent = formatCurrency(totalCost);
         document.getElementById('stat-disponiveis').textContent = availableLines;
 
         const costBySector = {};
@@ -696,6 +731,57 @@ const firebaseConfig = {
             countChart.innerHTML += `<div><div class="flex justify-between text-sm text-gray-600"><span>${nome}</span><span>${count}</span></div><div class="w-full bg-gray-200 rounded-full h-2.5 mt-1"><div class="bg-green-600 h-2.5 rounded-full" style="width: ${(count/maxCount*100)}%"></div></div></div>`;
         });
         if (Object.keys(countBySector).length === 0) countChart.innerHTML = '<p class="text-center text-gray-500">Nenhuma linha registada.</p>';
+    }
+
+    function renderDashboardTI(range = 'currentMonth') {
+        document.querySelectorAll('.db-filter-btn-ti').forEach(btn => {
+            btn.classList.remove('bg-blue-600', 'text-white');
+            btn.classList.add('bg-white', 'text-gray-700');
+        });
+        const activeBtn = document.querySelector(`.db-filter-btn-ti[onclick="renderDashboardTI('${range}')"]`);
+        if (activeBtn) {
+            activeBtn.classList.add('bg-blue-600', 'text-white');
+            activeBtn.classList.remove('bg-white', 'text-gray-700');
+        }
+
+        const today = new Date();
+        let startDate, endDate = new Date();
+        if (range === 'currentMonth') startDate = new Date(today.getFullYear(), today.getMonth(), 1);
+        else if (range === 'lastMonth') {
+            startDate = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+            endDate = new Date(today.getFullYear(), today.getMonth(), 0);
+        } else if (range === 'last90days') startDate = new Date(new Date().setDate(today.getDate() - 90));
+
+        const atividadesPeriodo = state.atividades.filter(a => { const d = new Date(a.data); return d >= startDate && d <= endDate; });
+        const custoTotal = atividadesPeriodo.reduce((sum, a) => sum + (a.custo || 0), 0);
+        const horasTotais = atividadesPeriodo.reduce((sum, a) => sum + (a.duracao || 0), 0);
+        const projetosAtivos = state.projetos.filter(p => p.status === 'Ativo').length;
+        
+        const thirtyDaysFromNow = new Date(); thirtyDaysFromNow.setDate(today.getDate() + 30);
+        const contratosVencendo = state.contratos.filter(c => { const v = DATE_ADD(c.dataContratacao, c.periodo); return v <= thirtyDaysFromNow && v >= today; }).length;
+
+        document.getElementById('stat-custo-total-ti').textContent = formatCurrency(custoTotal);
+        document.getElementById('stat-horas-totais-ti').textContent = `${horasTotais.toFixed(2)}h`;
+        document.getElementById('stat-projetos-ativos-ti').textContent = projetosAtivos;
+        document.getElementById('stat-contratos-vencendo-ti').textContent = contratosVencendo;
+
+        const custoPorProjeto = {};
+        atividadesPeriodo.forEach(a => { const nome = getRelationName(a.projetoId, 'projetos'); custoPorProjeto[nome] = (custoPorProjeto[nome] || 0) + a.custo; });
+        
+        const chartContainer = document.getElementById('chart-custo-projeto-ti');
+        chartContainer.innerHTML = '';
+        const maxCost = Math.max(...Object.values(custoPorProjeto), 1);
+        const sortedProjects = Object.entries(custoPorProjeto).sort(([,a],[,b]) => b-a);
+        if (sortedProjects.length > 0) {
+            sortedProjects.forEach(([nome, custo]) => chartContainer.innerHTML += `<div><div class="flex justify-between text-sm text-gray-600"><span>${nome}</span><span>${formatCurrency(custo)}</span></div><div class="w-full bg-gray-200 rounded-full h-2.5 mt-1"><div class="bg-blue-600 h-2.5 rounded-full" style="width: ${(custo/maxCost*100)}%"></div></div></div>`);
+        } else { chartContainer.innerHTML = '<p class="text-center text-gray-500">Nenhum custo registrado no período.</p>'; }
+
+        const listaRecentes = document.getElementById('lista-atividades-recentes-ti');
+        listaRecentes.innerHTML = '';
+        const recentActivities = state.atividades.sort((a, b) => new Date(b.data) - new Date(a.data)).slice(0, 5);
+        if (recentActivities.length > 0) {
+            recentActivities.forEach(a => listaRecentes.innerHTML += `<li class="flex items-center justify-between p-2 rounded hover:bg-gray-50"><div><p class="font-medium text-gray-800">${a.descricao}</p><p class="text-sm text-gray-500">${getRelationName(a.analistaId, 'analistas')} em ${getRelationName(a.projetoId, 'projetos')}</p></div><div class="text-right"><p class="font-semibold text-gray-700">${formatCurrency(a.custo)}</p><p class="text-xs text-gray-400">${formatDate(a.data)}</p></div></li>`);
+        } else { listaRecentes.innerHTML = '<p class="text-center text-gray-500">Nenhuma atividade registrada.</p>'; }
     }
 
     function renderDetailsView(entityName, id) {
