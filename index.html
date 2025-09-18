@@ -146,36 +146,42 @@ const firebaseConfig = {
             <div class="text-center p-4 bg-white rounded-lg shadow-lg">
                 <i class="fas fa-exclamation-triangle text-red-500 text-4xl mb-4"></i>
                 <h2 class="text-2xl font-bold text-gray-800 mb-2">Configuração do Firebase Incompleta</h2>
-                <p class="text-gray-600">Por favor, siga o guia <strong>como_configurar_firebase.md</strong> para criar o seu projeto Firebase e cole as suas chaves de configuração no ficheiro HTML para que a aplicação possa funcionar.</p>
+                <p class="text-gray-600">Por favor, siga o guia de configuração para criar o seu projeto Firebase e cole as suas chaves de configuração no ficheiro HTML para que a aplicação possa funcionar.</p>
             </div>
         `;
     } else {
         // Inicialização do Firebase (uma única vez)
-        const app = initializeApp(firebaseConfig);
-        db = getFirestore(app);
-        auth = getAuth(app);
+        try {
+            const app = initializeApp(firebaseConfig);
+            db = getFirestore(app);
+            auth = getAuth(app);
 
-        // ---------- AUTENTICAÇÃO E INICIALIZAÇÃO ----------
-        onAuthStateChanged(auth, (user) => {
-            if (user) {
-                userId = user.uid;
-                console.log("Utilizador autenticado com UID:", userId);
-                loadAllData();
-                document.getElementById('loading-overlay').style.display = 'none';
-            } else {
-                signInAnonymously(auth).catch((error) => {
-                    console.error("Erro na autenticação anónima:", error);
-                    const loadingOverlay = document.getElementById('loading-overlay');
-                    loadingOverlay.innerHTML = `
-                        <div class="text-center p-4 bg-white rounded-lg shadow-lg">
-                            <i class="fas fa-exclamation-triangle text-red-500 text-4xl mb-4"></i>
-                            <h2 class="text-2xl font-bold text-gray-800 mb-2">Erro de Conexão</h2>
-                             <p class="text-gray-600">Não foi possível conectar ao Firebase. Verifique se as suas chaves de configuração estão corretas e se as regras do Firestore foram publicadas.</p>
-                        </div>
-                    `;
-                });
-            }
-        });
+            // ---------- AUTENTICAÇÃO E INICIALIZAÇÃO ----------
+            onAuthStateChanged(auth, (user) => {
+                if (user) {
+                    userId = user.uid;
+                    console.log("Utilizador autenticado com UID:", userId);
+                    loadAllData();
+                    document.getElementById('loading-overlay').style.display = 'none';
+                } else {
+                    signInAnonymously(auth).catch((error) => {
+                        console.error("Erro na autenticação anónima:", error);
+                        const loadingOverlay = document.getElementById('loading-overlay');
+                        loadingOverlay.innerHTML = `
+                            <div class="text-center p-4 bg-white rounded-lg shadow-lg">
+                                <i class="fas fa-exclamation-triangle text-red-500 text-4xl mb-4"></i>
+                                <h2 class="text-2xl font-bold text-gray-800 mb-2">Erro de Conexão</h2>
+                                <p class="text-gray-600">Não foi possível conectar ao Firebase. Verifique se as suas chaves de configuração estão corretas e se as regras do Firestore foram publicadas.</p>
+                            </div>
+                        `;
+                    });
+                }
+            });
+        } catch (error) {
+            console.error("Erro ao inicializar o Firebase:", error);
+            const loadingOverlay = document.getElementById('loading-overlay');
+            loadingOverlay.innerHTML = `<div class="text-center p-4 bg-white rounded-lg shadow-lg"><p class="text-red-500">Erro crítico ao inicializar a aplicação. Verifique a consola (F12) para mais detalhes.</p></div>`;
+        }
     }
 
     // Variáveis globais da aplicação
@@ -217,7 +223,7 @@ const firebaseConfig = {
 
     // ---------- GESTÃO DE DADOS (FIRESTORE) ----------
     function loadAllData() {
-        if (!userId) return;
+        if (!userId || !db) return;
         const collections = ['fornecedores', 'contratos', 'projetos', 'analistas', 'servicos', 'atividades', 'tiposContrato'];
         
         collections.forEach(entityName => {
