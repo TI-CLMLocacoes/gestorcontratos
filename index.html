@@ -76,12 +76,14 @@
 
         <!-- Main Content -->
         <div id="main-content" class="flex-1 flex flex-col overflow-hidden main-content">
-            <header class="flex justify-between md:justify-end items-center p-4 bg-white border-b-2">
+            <header class="flex justify-between items-center p-4 bg-white border-b-2">
                  <button id="menu-button" class="text-gray-500 focus:outline-none md:hidden"><i class="fas fa-bars text-2xl"></i></button>
-                 <div id="header-actions" class="flex items-center space-x-4">
-                    <!-- Botão de migração foi removido -->
+                 <div class="flex-1 flex justify-center">
+                    <div id="header-actions" class="flex items-center space-x-4">
+                        <!-- Botão de migração será inserido aqui -->
+                    </div>
                  </div>
-                <h1 class="text-xl font-semibold text-gray-800">Gestão de Contratos e Atividades</h1>
+                <h1 class="text-xl font-semibold text-gray-800 text-right">Gestão de Contratos e Atividades</h1>
             </header>
             
             <main class="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 p-4">
@@ -160,6 +162,7 @@ const firebaseConfig = {
             if (user) {
                 userId = user.uid;
                 console.log("Utilizador autenticado com UID:", userId);
+                checkForMigration();
                 loadAllData();
                 document.getElementById('loading-overlay').style.display = 'none';
             } else {
@@ -197,6 +200,7 @@ const firebaseConfig = {
     window.handleTipoContratoChange = handleTipoContratoChange;
     window.updateActivityFormFilters = updateActivityFormFilters;
     window.exportToCSV = exportToCSV;
+    window.migrateDataFromLocalStorage = migrateDataFromLocalStorage;
 
     document.addEventListener('DOMContentLoaded', () => {
         setupEventListeners();
@@ -214,6 +218,72 @@ const firebaseConfig = {
             });
         });
     }
+
+    // ---------- MIGRAÇÃO DE DADOS DO LOCALSTORAGE ----------
+    function checkForMigration() {
+        if (localStorage.getItem('gestorTiState')) {
+            const headerActions = document.getElementById('header-actions');
+            const migrationButton = document.createElement('button');
+            migrationButton.id = 'migration-button';
+            migrationButton.innerHTML = `<i class="fas fa-cloud-upload-alt mr-2"></i> Restaurar Dados Antigos`;
+            migrationButton.className = 'bg-orange-500 text-white px-4 py-2 rounded-lg shadow hover:bg-orange-600 transition duration-300 animate-pulse';
+            migrationButton.onclick = migrateDataFromLocalStorage;
+            headerActions.prepend(migrationButton);
+        }
+    }
+
+    async function migrateDataFromLocalStorage() {
+        if (!confirm("Tem a certeza que deseja migrar os seus dados antigos para a nuvem? Esta ação só precisa de ser feita uma vez.")) {
+            return;
+        }
+
+        const loadingOverlay = document.getElementById('loading-overlay');
+        loadingOverlay.innerHTML = `<div class="spinner"></div><p class="mt-4 text-gray-600">A restaurar os seus dados para a nuvem...</p>`;
+        loadingOverlay.style.display = 'flex';
+
+        try {
+            const savedState = localStorage.getItem('gestorTiState');
+            if (!savedState) {
+                alert("Nenhum dado antigo foi encontrado para restaurar.");
+                return;
+            }
+
+            const oldState = JSON.parse(savedState);
+            const db = getFirestore();
+            const batch = writeBatch(db);
+
+            const entitiesToMigrate = ['fornecedores', 'contratos', 'projetos', 'analistas', 'servicos', 'atividades'];
+
+            for (const entityName of entitiesToMigrate) {
+                if (oldState[entityName] && oldState[entityName].length > 0) {
+                    oldState[entityName].forEach(item => {
+                        const { id, ...data } = item; // Remove o ID antigo gerado pelo LocalStorage
+                        const newDocRef = doc(collection(db, `users/${userId}/${entityName}`));
+                        batch.set(newDocRef, data);
+                    });
+                }
+            }
+
+            // Migra tipos de contrato
+            if (oldState.tiposContrato && oldState.tiposContrato.length > 0) {
+                const tiposContratoDocRef = doc(db, `users/${userId}/tiposContrato`, 'main');
+                batch.set(tiposContratoDocRef, { values: oldState.tiposContrato });
+            }
+
+            await batch.commit();
+
+            localStorage.removeItem('gestorTiState'); // Remove os dados antigos do navegador
+            document.getElementById('migration-button')?.remove(); // Remove o botão de migração
+            alert("Restauro concluído com sucesso! Os seus dados estão agora seguros na nuvem.");
+
+        } catch (error) {
+            console.error("Erro durante a migração:", error);
+            alert("Ocorreu um erro durante o restauro. Por favor, tente novamente.");
+        } finally {
+            loadingOverlay.style.display = 'none';
+        }
+    }
+
 
     // ---------- GESTÃO DE DADOS (FIRESTORE) ----------
     function loadAllData() {
