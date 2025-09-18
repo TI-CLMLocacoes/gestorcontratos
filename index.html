@@ -21,7 +21,7 @@
         .table-auto td:last-child { width: 80px; text-align: center; }
         .progress-bar-bg { background-color: #e5e7eb; }
         .progress-bar { transition: width 0.5s ease-in-out; }
-        #loading-overlay {
+        .loading-overlay {
             position: fixed;
             top: 0;
             left: 0;
@@ -51,13 +51,18 @@
 </head>
 <body class="bg-gray-100">
 
-    <div id="loading-overlay" class="hidden">
+    <div id="initial-loading-overlay" class="loading-overlay">
+        <div class="spinner"></div>
+        <p class="mt-4 text-gray-600">A carregar aplicação...</p>
+    </div>
+
+    <div id="action-loading-overlay" class="loading-overlay hidden">
         <div class="spinner"></div>
         <p class="mt-4 text-gray-600">A processar...</p>
     </div>
 
     <!-- Ecrã de Login -->
-    <div id="login-view" class="flex items-center justify-center h-screen bg-gray-200">
+    <div id="login-view" class="hidden flex items-center justify-center h-screen bg-gray-200">
         <div class="w-full max-w-md bg-white rounded-lg shadow-md p-8">
             <div class="text-center mb-8">
                  <i class="fas fa-tasks text-4xl text-blue-600"></i>
@@ -208,8 +213,8 @@ const firebaseConfig = {
 
     // VERIFICAÇÃO DA CONFIGURAÇÃO ANTES DE INICIALIZAR
     if (firebaseConfig.apiKey.startsWith("COLE_AQUI")) {
-        document.getElementById('loading-overlay').classList.remove('hidden');
-        document.getElementById('loading-overlay').innerHTML = `
+        const initialLoading = document.getElementById('initial-loading-overlay');
+        initialLoading.innerHTML = `
             <div class="text-center p-4 bg-white rounded-lg shadow-lg">
                 <i class="fas fa-exclamation-triangle text-red-500 text-4xl mb-4"></i>
                 <h2 class="text-2xl font-bold text-gray-800 mb-2">Configuração do Firebase Incompleta</h2>
@@ -225,8 +230,8 @@ const firebaseConfig = {
 
             // ---------- AUTENTICAÇÃO E INICIALIZAÇÃO ----------
             onAuthStateChanged(auth, (user) => {
-                const loadingOverlay = document.getElementById('loading-overlay');
-                loadingOverlay.classList.add('hidden');
+                const initialLoading = document.getElementById('initial-loading-overlay');
+                initialLoading.classList.add('hidden');
 
                 // Apenas entra na aplicação se o utilizador não for anónimo
                 if (user && !user.isAnonymous) {
@@ -245,8 +250,8 @@ const firebaseConfig = {
             });
         } catch (error) {
             console.error("Erro ao inicializar o Firebase:", error);
-            const loadingOverlay = document.getElementById('loading-overlay');
-            loadingOverlay.innerHTML = `<div class="text-center p-4 bg-white rounded-lg shadow-lg"><p class="text-red-500">Erro crítico ao inicializar a aplicação. Verifique a consola (F12) para mais detalhes.</p></div>`;
+            const initialLoading = document.getElementById('initial-loading-overlay');
+            initialLoading.innerHTML = `<div class="text-center p-4 bg-white rounded-lg shadow-lg"><p class="text-red-500">Erro crítico ao inicializar a aplicação. Verifique a consola (F12) para mais detalhes.</p></div>`;
         }
     }
 
@@ -306,8 +311,8 @@ const firebaseConfig = {
     // ---------- FUNÇÕES DE AUTENTICAÇÃO ----------
     async function handleLogin(e) {
         e.preventDefault();
-        const loadingOverlay = document.getElementById('loading-overlay');
-        loadingOverlay.classList.remove('hidden');
+        const actionLoading = document.getElementById('action-loading-overlay');
+        actionLoading.classList.remove('hidden');
 
         const email = document.getElementById('login-email').value;
         const password = document.getElementById('login-password').value;
@@ -322,14 +327,14 @@ const firebaseConfig = {
             errorDiv.classList.remove('hidden');
             console.error("Erro de login:", error.message);
         } finally {
-            loadingOverlay.classList.add('hidden');
+            actionLoading.classList.add('hidden');
         }
     }
 
     async function handleRegister(e) {
         e.preventDefault();
-        const loadingOverlay = document.getElementById('loading-overlay');
-        loadingOverlay.classList.remove('hidden');
+        const actionLoading = document.getElementById('action-loading-overlay');
+        actionLoading.classList.remove('hidden');
         
         const email = document.getElementById('register-email').value;
         const password = document.getElementById('register-password').value;
@@ -339,7 +344,7 @@ const firebaseConfig = {
         if (password.length < 6) {
             errorMessage.textContent = "A palavra-passe deve ter pelo menos 6 caracteres.";
             errorDiv.classList.remove('hidden');
-            loadingOverlay.classList.add('hidden');
+            actionLoading.classList.add('hidden');
             return;
         }
 
@@ -355,7 +360,7 @@ const firebaseConfig = {
             errorDiv.classList.remove('hidden');
             console.error("Erro de registo:", error.message);
         } finally {
-            loadingOverlay.classList.add('hidden');
+            actionLoading.classList.add('hidden');
         }
     }
     
