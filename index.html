@@ -51,68 +51,135 @@
 </head>
 <body class="bg-gray-100">
 
-    <div id="loading-overlay">
+    <div id="loading-overlay" class="hidden">
         <div class="spinner"></div>
-        <p class="mt-4 text-gray-600">A carregar aplicação...</p>
+        <p class="mt-4 text-gray-600">A processar...</p>
     </div>
 
-    <div class="flex h-screen">
-        <!-- Sidebar -->
-        <aside id="sidebar" class="bg-gray-800 text-white w-64 space-y-6 py-7 px-2 absolute inset-y-0 left-0 transform -translate-x-full md:relative md:translate-x-0 sidebar">
-            <a href="#" class="text-white flex items-center space-x-2 px-4">
-                <i class="fas fa-tasks text-2xl"></i>
-                <span class="text-2xl font-extrabold">Gestor TI</span>
-            </a>
-            <nav>
-                <a href="#" onclick="showView('dashboard')" class="nav-link block py-2.5 px-4 rounded transition duration-200 hover:bg-gray-700 bg-gray-700"><i class="fas fa-chart-line mr-2"></i>Dashboard</a>
-                <a href="#" onclick="showView('atividades')" class="nav-link block py-2.5 px-4 rounded transition duration-200 hover:bg-gray-700"><i class="fas fa-stopwatch mr-2"></i>Atividades</a>
-                <a href="#" onclick="showView('projetos')" class="nav-link block py-2.5 px-4 rounded transition duration-200 hover:bg-gray-700"><i class="fas fa-project-diagram mr-2"></i>Projetos</a>
-                <a href="#" onclick="showView('servicos')" class="nav-link block py-2.5 px-4 rounded transition duration-200 hover:bg-gray-700"><i class="fas fa-concierge-bell mr-2"></i>Serviços</a>
-                <a href="#" onclick="showView('contratos')" class="nav-link block py-2.5 px-4 rounded transition duration-200 hover:bg-gray-700"><i class="fas fa-file-signature mr-2"></i>Contratos</a>
-                <a href="#" onclick="showView('fornecedores')" class="nav-link block py-2.5 px-4 rounded transition duration-200 hover:bg-gray-700"><i class="fas fa-building mr-2"></i>Fornecedores</a>
-                <a href="#" onclick="showView('analistas')" class="nav-link block py-2.5 px-4 rounded transition duration-200 hover:bg-gray-700"><i class="fas fa-users-cog mr-2"></i>Analistas</a>
-            </nav>
-        </aside>
-
-        <!-- Main Content -->
-        <div id="main-content" class="flex-1 flex flex-col overflow-hidden main-content">
-            <header class="flex justify-between md:justify-end items-center p-4 bg-white border-b-2">
-                 <button id="menu-button" class="text-gray-500 focus:outline-none md:hidden"><i class="fas fa-bars text-2xl"></i></button>
-                <h1 class="text-xl font-semibold text-gray-800">Gestão de Contratos e Atividades</h1>
-            </header>
+    <!-- Ecrã de Login -->
+    <div id="login-view" class="flex items-center justify-center h-screen bg-gray-200">
+        <div class="w-full max-w-md bg-white rounded-lg shadow-md p-8">
+            <div class="text-center mb-8">
+                 <i class="fas fa-tasks text-4xl text-blue-600"></i>
+                <h1 class="text-3xl font-extrabold text-gray-800 mt-2">Gestor TI</h1>
+            </div>
             
-            <main class="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 p-4">
-                <!-- VIEW: Dashboard -->
-                <div id="view-dashboard" class="view">
-                    <div class="flex justify-between items-center mb-4">
-                        <h2 class="text-3xl font-bold text-gray-800">Dashboard</h2>
-                        <div id="dashboard-filters" class="flex space-x-2">
-                            <button onclick="renderDashboard('currentMonth')" class="db-filter-btn bg-blue-600 text-white px-3 py-1 rounded-md text-sm">Este Mês</button>
-                            <button onclick="renderDashboard('lastMonth')" class="db-filter-btn bg-white text-gray-700 px-3 py-1 rounded-md text-sm border">Mês Passado</button>
-                            <button onclick="renderDashboard('last90days')" class="db-filter-btn bg-white text-gray-700 px-3 py-1 rounded-md text-sm border">Últimos 90 dias</button>
+            <div id="auth-error" class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4 hidden" role="alert">
+                <span class="block sm:inline" id="auth-error-message"></span>
+            </div>
+
+            <!-- Formulário de Login -->
+            <form id="login-form">
+                <div class="mb-4">
+                    <label for="login-email" class="block text-sm font-medium text-gray-700">Email</label>
+                    <input type="email" id="login-email" required class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                </div>
+                <div class="mb-6">
+                    <label for="login-password" class="block text-sm font-medium text-gray-700">Palavra-passe</label>
+                    <input type="password" id="login-password" required class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                </div>
+                <button type="submit" class="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition duration-300">Entrar</button>
+            </form>
+
+            <p class="text-center text-sm text-gray-600 mt-6">
+                Não tem uma conta? <a href="#" id="show-register" class="font-medium text-blue-600 hover:text-blue-800">Crie uma aqui</a>.
+            </p>
+        </div>
+    </div>
+
+     <!-- Ecrã de Registo -->
+    <div id="register-view" class="hidden flex items-center justify-center h-screen bg-gray-200">
+        <div class="w-full max-w-md bg-white rounded-lg shadow-md p-8">
+            <div class="text-center mb-8">
+                 <i class="fas fa-tasks text-4xl text-blue-600"></i>
+                <h1 class="text-3xl font-extrabold text-gray-800 mt-2">Criar Nova Conta</h1>
+            </div>
+            
+            <div id="register-error" class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4 hidden" role="alert">
+                <span class="block sm:inline" id="register-error-message"></span>
+            </div>
+            
+            <form id="register-form">
+                <div class="mb-4">
+                    <label for="register-email" class="block text-sm font-medium text-gray-700">Email</label>
+                    <input type="email" id="register-email" required class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                </div>
+                <div class="mb-6">
+                    <label for="register-password" class="block text-sm font-medium text-gray-700">Palavra-passe (mín. 6 caracteres)</label>
+                    <input type="password" id="register-password" required class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                </div>
+                <button type="submit" class="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition duration-300">Registar</button>
+            </form>
+
+             <p class="text-center text-sm text-gray-600 mt-6">
+                Já tem uma conta? <a href="#" id="show-login" class="font-medium text-blue-600 hover:text-blue-800">Entre aqui</a>.
+            </p>
+        </div>
+    </div>
+
+    <!-- Aplicação Principal (inicialmente escondida) -->
+    <div id="app-view" class="hidden h-screen">
+        <div class="flex h-full">
+            <!-- Sidebar -->
+            <aside id="sidebar" class="bg-gray-800 text-white w-64 space-y-6 py-7 px-2 absolute inset-y-0 left-0 transform -translate-x-full md:relative md:translate-x-0 sidebar">
+                <a href="#" class="text-white flex items-center space-x-2 px-4">
+                    <i class="fas fa-tasks text-2xl"></i>
+                    <span class="text-2xl font-extrabold">Gestor TI</span>
+                </a>
+                <nav>
+                    <a href="#" onclick="showView('dashboard')" class="nav-link block py-2.5 px-4 rounded transition duration-200 hover:bg-gray-700 bg-gray-700"><i class="fas fa-chart-line mr-2"></i>Dashboard</a>
+                    <a href="#" onclick="showView('atividades')" class="nav-link block py-2.5 px-4 rounded transition duration-200 hover:bg-gray-700"><i class="fas fa-stopwatch mr-2"></i>Atividades</a>
+                    <a href="#" onclick="showView('projetos')" class="nav-link block py-2.5 px-4 rounded transition duration-200 hover:bg-gray-700"><i class="fas fa-project-diagram mr-2"></i>Projetos</a>
+                    <a href="#" onclick="showView('servicos')" class="nav-link block py-2.5 px-4 rounded transition duration-200 hover:bg-gray-700"><i class="fas fa-concierge-bell mr-2"></i>Serviços</a>
+                    <a href="#" onclick="showView('contratos')" class="nav-link block py-2.5 px-4 rounded transition duration-200 hover:bg-gray-700"><i class="fas fa-file-signature mr-2"></i>Contratos</a>
+                    <a href="#" onclick="showView('fornecedores')" class="nav-link block py-2.5 px-4 rounded transition duration-200 hover:bg-gray-700"><i class="fas fa-building mr-2"></i>Fornecedores</a>
+                    <a href="#" onclick="showView('analistas')" class="nav-link block py-2.5 px-4 rounded transition duration-200 hover:bg-gray-700"><i class="fas fa-users-cog mr-2"></i>Analistas</a>
+                </nav>
+            </aside>
+
+            <!-- Main Content -->
+            <div id="main-content" class="flex-1 flex flex-col overflow-hidden main-content">
+                <header class="flex justify-between items-center p-4 bg-white border-b-2">
+                    <button id="menu-button" class="text-gray-500 focus:outline-none md:hidden"><i class="fas fa-bars text-2xl"></i></button>
+                    <div class="flex items-center space-x-4">
+                        <span id="user-email" class="text-sm text-gray-600"></span>
+                        <button id="logout-button" class="bg-red-500 text-white px-3 py-1 rounded-md text-sm hover:bg-red-600"><i class="fas fa-sign-out-alt mr-2"></i>Sair</button>
+                    </div>
+                </header>
+                
+                <main class="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 p-4">
+                    <!-- VIEW: Dashboard -->
+                    <div id="view-dashboard" class="view">
+                        <div class="flex justify-between items-center mb-4">
+                            <h2 class="text-3xl font-bold text-gray-800">Dashboard</h2>
+                            <div id="dashboard-filters" class="flex space-x-2">
+                                <button onclick="renderDashboard('currentMonth')" class="db-filter-btn bg-blue-600 text-white px-3 py-1 rounded-md text-sm">Este Mês</button>
+                                <button onclick="renderDashboard('lastMonth')" class="db-filter-btn bg-white text-gray-700 px-3 py-1 rounded-md text-sm border">Mês Passado</button>
+                                <button onclick="renderDashboard('last90days')" class="db-filter-btn bg-white text-gray-700 px-3 py-1 rounded-md text-sm border">Últimos 90 dias</button>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+                            <div class="bg-white p-4 rounded-lg shadow-md stat-card transition-transform duration-300"><div class="flex items-center"><div class="bg-blue-500 text-white rounded-full p-3 mr-4"><i class="fas fa-dollar-sign fa-2x"></i></div><div><p class="text-sm text-gray-500">Custo Total (Período)</p><p id="stat-custo-total" class="text-2xl font-bold text-gray-800">R$ 0,00</p></div></div></div>
+                            <div class="bg-white p-4 rounded-lg shadow-md stat-card transition-transform duration-300"><div class="flex items-center"><div class="bg-green-500 text-white rounded-full p-3 mr-4"><i class="fas fa-clock fa-2x"></i></div><div><p class="text-sm text-gray-500">Horas Totais (Período)</p><p id="stat-horas-totais" class="text-2xl font-bold text-gray-800">0.00h</p></div></div></div>
+                            <div class="bg-white p-4 rounded-lg shadow-md stat-card transition-transform duration-300"><div class="flex items-center"><div class="bg-yellow-500 text-white rounded-full p-3 mr-4"><i class="fas fa-project-diagram fa-2x"></i></div><div><p class="text-sm text-gray-500">Projetos Ativos</p><p id="stat-projetos-ativos" class="text-2xl font-bold text-gray-800">0</p></div></div></div>
+                            <div class="bg-white p-4 rounded-lg shadow-md stat-card transition-transform duration-300"><div class="flex items-center"><div class="bg-red-500 text-white rounded-full p-3 mr-4"><i class="fas fa-file-signature fa-2x"></i></div><div><p class="text-sm text-gray-500">Contratos Vencendo</p><p id="stat-contratos-vencendo" class="text-2xl font-bold text-gray-800">0</p></div></div></div>
+                        </div>
+                        <div class="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-4">
+                            <div class="bg-white p-4 rounded-lg shadow-md"><h3 class="font-bold text-gray-700 mb-4">Custo por Projeto (Período)</h3><div id="chart-custo-projeto" class="space-y-3"></div></div>
+                            <div class="bg-white p-4 rounded-lg shadow-md"><h3 class="font-bold text-gray-700 mb-4">Atividades Recentes</h3><ul id="lista-atividades-recentes" class="space-y-4"></ul></div>
                         </div>
                     </div>
-                    <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-                        <div class="bg-white p-4 rounded-lg shadow-md stat-card transition-transform duration-300"><div class="flex items-center"><div class="bg-blue-500 text-white rounded-full p-3 mr-4"><i class="fas fa-dollar-sign fa-2x"></i></div><div><p class="text-sm text-gray-500">Custo Total (Período)</p><p id="stat-custo-total" class="text-2xl font-bold text-gray-800">R$ 0,00</p></div></div></div>
-                        <div class="bg-white p-4 rounded-lg shadow-md stat-card transition-transform duration-300"><div class="flex items-center"><div class="bg-green-500 text-white rounded-full p-3 mr-4"><i class="fas fa-clock fa-2x"></i></div><div><p class="text-sm text-gray-500">Horas Totais (Período)</p><p id="stat-horas-totais" class="text-2xl font-bold text-gray-800">0.00h</p></div></div></div>
-                        <div class="bg-white p-4 rounded-lg shadow-md stat-card transition-transform duration-300"><div class="flex items-center"><div class="bg-yellow-500 text-white rounded-full p-3 mr-4"><i class="fas fa-project-diagram fa-2x"></i></div><div><p class="text-sm text-gray-500">Projetos Ativos</p><p id="stat-projetos-ativos" class="text-2xl font-bold text-gray-800">0</p></div></div></div>
-                        <div class="bg-white p-4 rounded-lg shadow-md stat-card transition-transform duration-300"><div class="flex items-center"><div class="bg-red-500 text-white rounded-full p-3 mr-4"><i class="fas fa-file-signature fa-2x"></i></div><div><p class="text-sm text-gray-500">Contratos Vencendo</p><p id="stat-contratos-vencendo" class="text-2xl font-bold text-gray-800">0</p></div></div></div>
-                    </div>
-                    <div class="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-4">
-                        <div class="bg-white p-4 rounded-lg shadow-md"><h3 class="font-bold text-gray-700 mb-4">Custo por Projeto (Período)</h3><div id="chart-custo-projeto" class="space-y-3"></div></div>
-                        <div class="bg-white p-4 rounded-lg shadow-md"><h3 class="font-bold text-gray-700 mb-4">Atividades Recentes</h3><ul id="lista-atividades-recentes" class="space-y-4"></ul></div>
-                    </div>
-                </div>
 
-                <!-- VIEWS para cada entidade -->
-                <div id="view-fornecedores" class="view hidden"></div>
-                <div id="view-contratos" class="view hidden"></div>
-                <div id="view-projetos" class="view hidden"></div>
-                <div id="view-analistas" class="view hidden"></div>
-                <div id="view-atividades" class="view hidden"></div>
-                <div id="view-servicos" class="view hidden"></div>
-                <div id="view-details" class="view hidden"></div>
-            </main>
+                    <!-- VIEWS para cada entidade -->
+                    <div id="view-fornecedores" class="view hidden"></div>
+                    <div id="view-contratos" class="view hidden"></div>
+                    <div id="view-projetos" class="view hidden"></div>
+                    <div id="view-analistas" class="view hidden"></div>
+                    <div id="view-atividades" class="view hidden"></div>
+                    <div id="view-servicos" class="view hidden"></div>
+                    <div id="view-details" class="view hidden"></div>
+                </main>
+            </div>
         </div>
     </div>
 
@@ -123,7 +190,7 @@
     // ---------- IMPORTS E CONFIGURAÇÃO DO FIREBASE ----------
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
     import { getFirestore, collection, onSnapshot, addDoc, doc, setDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-    import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+    import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 // For Firebase JS SDK v7.20.0 and later, measurementId is optional
 const firebaseConfig = {
@@ -141,8 +208,7 @@ const firebaseConfig = {
 
     // VERIFICAÇÃO DA CONFIGURAÇÃO ANTES DE INICIALIZAR
     if (firebaseConfig.apiKey.startsWith("COLE_AQUI")) {
-        const loadingOverlay = document.getElementById('loading-overlay');
-        loadingOverlay.innerHTML = `
+        document.getElementById('loading-overlay').innerHTML = `
             <div class="text-center p-4 bg-white rounded-lg shadow-lg">
                 <i class="fas fa-exclamation-triangle text-red-500 text-4xl mb-4"></i>
                 <h2 class="text-2xl font-bold text-gray-800 mb-2">Configuração do Firebase Incompleta</h2>
@@ -158,23 +224,20 @@ const firebaseConfig = {
 
             // ---------- AUTENTICAÇÃO E INICIALIZAÇÃO ----------
             onAuthStateChanged(auth, (user) => {
+                const loadingOverlay = document.getElementById('loading-overlay');
+                loadingOverlay.classList.add('hidden');
+
                 if (user) {
                     userId = user.uid;
-                    console.log("Utilizador autenticado com UID:", userId);
+                    document.getElementById('user-email').textContent = user.email;
+                    document.getElementById('login-view').classList.add('hidden');
+                    document.getElementById('register-view').classList.add('hidden');
+                    document.getElementById('app-view').classList.remove('hidden');
                     loadAllData();
-                    document.getElementById('loading-overlay').style.display = 'none';
                 } else {
-                    signInAnonymously(auth).catch((error) => {
-                        console.error("Erro na autenticação anónima:", error);
-                        const loadingOverlay = document.getElementById('loading-overlay');
-                        loadingOverlay.innerHTML = `
-                            <div class="text-center p-4 bg-white rounded-lg shadow-lg">
-                                <i class="fas fa-exclamation-triangle text-red-500 text-4xl mb-4"></i>
-                                <h2 class="text-2xl font-bold text-gray-800 mb-2">Erro de Conexão</h2>
-                                <p class="text-gray-600">Não foi possível conectar ao Firebase. Verifique se as suas chaves de configuração estão corretas e se as regras do Firestore foram publicadas.</p>
-                            </div>
-                        `;
-                    });
+                    userId = null;
+                    document.getElementById('app-view').classList.add('hidden');
+                    document.getElementById('login-view').classList.remove('hidden');
                 }
             });
         } catch (error) {
@@ -219,7 +282,77 @@ const firebaseConfig = {
                 if (!sidebar.classList.contains('md:relative')) sidebar.classList.add('-translate-x-full');
             });
         });
+
+        // Eventos dos formulários de autenticação
+        document.getElementById('login-form').addEventListener('submit', handleLogin);
+        document.getElementById('register-form').addEventListener('submit', handleRegister);
+        document.getElementById('logout-button').addEventListener('click', handleLogout);
+
+        document.getElementById('show-register').addEventListener('click', (e) => {
+            e.preventDefault();
+            document.getElementById('login-view').classList.add('hidden');
+            document.getElementById('register-view').classList.remove('hidden');
+        });
+         document.getElementById('show-login').addEventListener('click', (e) => {
+            e.preventDefault();
+            document.getElementById('register-view').classList.add('hidden');
+            document.getElementById('login-view').classList.remove('hidden');
+        });
     }
+    
+    // ---------- FUNÇÕES DE AUTENTICAÇÃO ----------
+    async function handleLogin(e) {
+        e.preventDefault();
+        const email = document.getElementById('login-email').value;
+        const password = document.getElementById('login-password').value;
+        const errorDiv = document.getElementById('auth-error');
+        const errorMessage = document.getElementById('auth-error-message');
+
+        try {
+            await signInWithEmailAndPassword(auth, email, password);
+            errorDiv.classList.add('hidden');
+        } catch (error) {
+            errorMessage.textContent = "Email ou palavra-passe inválidos.";
+            errorDiv.classList.remove('hidden');
+            console.error("Erro de login:", error.message);
+        }
+    }
+
+    async function handleRegister(e) {
+        e.preventDefault();
+        const email = document.getElementById('register-email').value;
+        const password = document.getElementById('register-password').value;
+        const errorDiv = document.getElementById('register-error');
+        const errorMessage = document.getElementById('register-error-message');
+        
+        if (password.length < 6) {
+            errorMessage.textContent = "A palavra-passe deve ter pelo menos 6 caracteres.";
+            errorDiv.classList.remove('hidden');
+            return;
+        }
+
+        try {
+            await createUserWithEmailAndPassword(auth, email, password);
+            errorDiv.classList.add('hidden');
+        } catch (error) {
+             if (error.code === 'auth/email-already-in-use') {
+                errorMessage.textContent = 'Este email já está a ser utilizado.';
+            } else {
+                errorMessage.textContent = 'Ocorreu um erro ao criar a conta.';
+            }
+            errorDiv.classList.remove('hidden');
+            console.error("Erro de registo:", error.message);
+        }
+    }
+    
+    async function handleLogout() {
+        try {
+            await signOut(auth);
+        } catch(error) {
+            console.error("Erro ao sair:", error);
+        }
+    }
+
 
     // ---------- GESTÃO DE DADOS (FIRESTORE) ----------
     function loadAllData() {
@@ -266,16 +399,18 @@ const firebaseConfig = {
 
         document.querySelectorAll('.view').forEach(view => view.classList.add('hidden'));
         const activeView = document.getElementById(`view-${viewName}`);
-        activeView.classList.remove('hidden');
-        
-        if (viewName !== 'dashboard') {
-            activeView.innerHTML = ''; 
-        }
+        if(activeView) {
+            activeView.classList.remove('hidden');
+            
+            if (viewName !== 'dashboard') {
+                activeView.innerHTML = ''; 
+            }
 
-        switch(viewName) {
-            case 'dashboard': renderDashboard(); break;
-            case 'details': renderDetailsView(detailsId.entity, detailsId.id); break;
-            default: renderEntityListView(viewName); break;
+            switch(viewName) {
+                case 'dashboard': renderDashboard(); break;
+                case 'details': renderDetailsView(detailsId.entity, detailsId.id); break;
+                default: renderEntityListView(viewName); break;
+            }
         }
     }
 
