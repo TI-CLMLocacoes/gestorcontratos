@@ -208,6 +208,7 @@ const firebaseConfig = {
 
     // VERIFICAÇÃO DA CONFIGURAÇÃO ANTES DE INICIALIZAR
     if (firebaseConfig.apiKey.startsWith("COLE_AQUI")) {
+        document.getElementById('loading-overlay').classList.remove('hidden');
         document.getElementById('loading-overlay').innerHTML = `
             <div class="text-center p-4 bg-white rounded-lg shadow-lg">
                 <i class="fas fa-exclamation-triangle text-red-500 text-4xl mb-4"></i>
@@ -227,7 +228,8 @@ const firebaseConfig = {
                 const loadingOverlay = document.getElementById('loading-overlay');
                 loadingOverlay.classList.add('hidden');
 
-                if (user) {
+                // Apenas entra na aplicação se o utilizador não for anónimo
+                if (user && !user.isAnonymous) {
                     userId = user.uid;
                     document.getElementById('user-email').textContent = user.email;
                     document.getElementById('login-view').classList.add('hidden');
@@ -237,6 +239,7 @@ const firebaseConfig = {
                 } else {
                     userId = null;
                     document.getElementById('app-view').classList.add('hidden');
+                    document.getElementById('register-view').classList.add('hidden');
                     document.getElementById('login-view').classList.remove('hidden');
                 }
             });
