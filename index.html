@@ -585,8 +585,9 @@ const firebaseConfig = {
     function createSelectField(key, label, value, customOptions = null, isRequired = true, extraAttributes = '') {
         let options = [];
         const relationName = key.replace('Id', '');
+        const pluralName = relationName + (relationName.endsWith('s') ? '' : 's');
         if (customOptions) options = customOptions;
-        else options = state[relationName + 's']?.map(item => ({ id: item.id, nome: item.descricao ? `${item.numeroContrato} - ${item.descricao}` : item.nome })) || [];
+        else options = state[pluralName]?.map(item => ({ id: item.id, nome: item.descricao ? `${item.numeroContrato} - ${item.descricao}` : item.nome })) || [];
         
         const optionsHtml = options.map(o => `<option value="${o.id}" ${o.id === value ? 'selected' : ''}>${o.nome}</option>`).join('');
         return `<div><label for="${key}" class="block text-sm font-medium text-gray-700">${label}</label><select id="${key}" name="${key}" ${isRequired ? 'required' : ''} ${extraAttributes} class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"><option value="">Selecione...</option>${optionsHtml}</select></div>`;
@@ -705,7 +706,7 @@ const firebaseConfig = {
     function formatCurrency(value) { return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(parseFloat(value) || 0); }
     function formatDate(dateString) { if (!dateString) return 'N/A'; const date = new Date(dateString); const adjustedDate = new Date(date.getTime() + Math.abs(date.getTimezoneOffset()*60000)); return adjustedDate.toLocaleDateString('pt-BR'); }
     function formatHours(decimalHours) {
-        if (isNaN(decimalHours) || decimalHours === null) return '0h 00m';
+        if (isNaN(parseFloat(decimalHours)) || decimalHours === null) return '0h 00m';
         const hours = Math.floor(decimalHours);
         const minutes = Math.round((decimalHours - hours) * 60);
         return `${hours}h ${String(minutes).padStart(2, '0')}m`;
