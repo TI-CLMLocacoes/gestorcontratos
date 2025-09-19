@@ -851,7 +851,10 @@ const firebaseConfig = {
         let headers;
         if (relatedEntityName === 'projetos') {
             headers = `<th>Nome</th><th>Contrato</th><th>Status</th><th>Consumo Orçamento</th><th>Consumo Horas</th>`;
-        } else {
+        } else if (relatedEntityName === 'atividades'){
+            headers = `<th>Projeto</th><th>Analista</th><th>Serviço</th><th>Descrição</th><th>Data</th><th>Hora Início</th><th>Hora Término</th><th>Valor Específico</th><th>Duração</th><th>Custo</th>`;
+        }
+        else {
             headers = Object.values(config.fields).map(h => `<th>${h}</th>`).join('');
             if (config.extraHeaders) headers += config.extraHeaders;
         }
