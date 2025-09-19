@@ -499,7 +499,7 @@ const firebaseConfig = {
         projetos: { title: "Projetos de TI", fields: { nome: "Nome", contratoId: "Contrato", status: "Status", orcamentoTotal: "Orçamento (R$)", bancoHoras: "Horas Contratadas" }, optionalFields: ['orcamentoTotal', 'bancoHoras'], columns: item => { const {consumedCost, consumedHours} = calculateProjectConsumption(item.id); const orcamento = parseFloat(item.orcamentoTotal) || 0; const horas = parseFloat(item.bancoHoras) || 0; const costPercent = orcamento > 0 ? (consumedCost / orcamento * 100).toFixed(0) : 0; const hoursPercent = horas > 0 ? (consumedHours / horas * 100).toFixed(0) : 0; return `<td><a href="#" class="text-blue-600 hover:underline" onclick="showView('details', {entity: 'projetos', id: '${item.id}'})">${item.nome}</a></td><td class="truncate max-w-xs" title="${getRelationName(item.contratoId, 'contratos', 'descricao')}">${getRelationName(item.contratoId, 'contratos', 'descricao')}</td><td>${item.status}</td><td>${renderProgressBar(costPercent, `${formatCurrency(consumedCost)} / ${formatCurrency(orcamento)}`)}</td><td>${renderProgressBar(hoursPercent, `${formatHours(consumedHours)} / ${formatHours(horas)}`)}</td>`; } },
         analistas: { title: "Analistas de TI", fields: { nome: "Nome", fornecedorId: "Fornecedor de TI", valorHoraEspecifico: "Valor Hora (R$)" }, columns: item => `<td>${item.nome}</td><td>${getRelationName(item.fornecedorId, 'fornecedores')}</td><td>${formatCurrency(item.valorHoraEspecifico)}</td>` },
         servicos: { title: "Serviços de TI", fields: { nome: "Nome do Serviço", descricao: "Descrição", contratoId: "Contrato" }, columns: item => `<td>${item.nome}</td><td class="truncate max-w-md" title="${item.descricao}">${item.descricao}</td><td class="truncate max-w-xs" title="${getRelationName(item.contratoId, 'contratos', 'descricao')}">${getRelationName(item.contratoId, 'contratos', 'descricao')}</td>` },
-        atividades: { title: "Atividades de TI", fields: { projetoId: "Projeto", analistaId: "Analista", servicoId: "Serviço", descricao: "Descrição", data: "Data", horaInicio: "Hora Início", horaTermino: "Hora Término", valorEspecifico: "Valor Específico (R$)" }, optionalFields: ['analistaId', 'horaInicio', 'horaTermino', 'valorEspecifico'], columns: item => `<td class="whitespace-nowrap">${getRelationName(item.projetoId, 'projetos')}</td><td class="whitespace-nowrap">${getRelationName(item.analistaId, 'analistas')}</td><td class="whitespace-nowrap">${getRelationName(item.servicoId, 'servicos')}</td><td class="truncate max-w-sm" title="${item.descricao}">${item.descricao}</td><td class="whitespace-nowrap">${formatDate(item.data)}</td><td class="whitespace-nowrap text-center">${item.horaInicio || '-'}</td><td class="whitespace-nowrap text-center">${item.horaTermino || '-'}</td><td class="whitespace-nowrap text-center">${formatCurrency(item.valorEspecifico)}</td><td class="whitespace-nowrap text-center">${formatHours(item.duracao)}</td><td class="whitespace-nowrap">${formatCurrency(item.custo)}</td>`, extraHeaders: '<th>Duração</th><th>Custo</th>' },
+        atividades: { title: "Atividades de TI", fields: { fornecedorId: "Fornecedor", projetoId: "Projeto", analistaId: "Analista", servicoId: "Serviço", descricao: "Descrição", data: "Data", horaInicio: "Hora Início", horaTermino: "Hora Término", valorEspecifico: "Valor Específico (R$)" }, optionalFields: ['projetoId', 'analistaId', 'horaInicio', 'horaTermino', 'valorEspecifico'], columns: item => `<td class="whitespace-nowrap">${getRelationName(item.projetoId, 'projetos')}</td><td class="whitespace-nowrap">${getRelationName(item.analistaId, 'analistas')}</td><td class="whitespace-nowrap">${getRelationName(item.servicoId, 'servicos')}</td><td class="truncate max-w-sm" title="${item.descricao}">${item.descricao}</td><td class="whitespace-nowrap">${formatDate(item.data)}</td><td class="whitespace-nowrap text-center">${item.horaInicio || '-'}</td><td class="whitespace-nowrap text-center">${item.horaTermino || '-'}</td><td class="whitespace-nowrap text-center">${formatCurrency(item.valorEspecifico)}</td><td class="whitespace-nowrap text-center">${formatHours(item.duracao)}</td><td class="whitespace-nowrap">${formatCurrency(item.custo)}</td>`, extraHeaders: '<th>Duração</th><th>Custo</th>' },
         operadoras: { title: "Operadoras", fields: { nome: "Nome da Operadora" }, columns: item => `<td>${item.nome}</td>` },
         setores: { title: "Setores", fields: { nome: "Nome do Setor" }, columns: item => `<td>${item.nome}</td>` },
         usuarios: { title: "Usuários", fields: { nome: "Nome do Usuário", setorId: "Setor" }, columns: item => `<td>${item.nome}</td><td>${getRelationName(item.setorId, 'setores')}</td>` },
@@ -573,8 +573,16 @@ const firebaseConfig = {
 
         if (entityName === 'atividades') {
             const projetoSelect = document.getElementById('projetoId');
-            if (isEditing && item.projetoId) updateActivityFormFilters(item.projetoId, item.analistaId, item.servicoId);
-            projetoSelect.onchange = (e) => updateActivityFormFilters(e.target.value);
+            const fornecedorSelect = document.getElementById('fornecedorId');
+            
+            if (isEditing && item.projetoId) {
+                updateActivityFormFilters({ projectId: item.projetoId, selectedAnalistaId: item.analistaId, selectedServicoId: item.servicoId });
+            } else if (isEditing && item.fornecedorId) {
+                updateActivityFormFilters({ fornecedorId: item.fornecedorId, selectedAnalistaId: item.analistaId, selectedServicoId: item.servicoId });
+            }
+
+            projetoSelect.onchange = (e) => updateActivityFormFilters({ projectId: e.target.value });
+            fornecedorSelect.onchange = (e) => updateActivityFormFilters({ fornecedorId: e.target.value });
         }
     }
 
@@ -603,26 +611,45 @@ const firebaseConfig = {
         if (selectedValue !== 'outro') input.value = '';
     }
 
-    function updateActivityFormFilters(projectId, selectedAnalistaId = null, selectedServicoId = null) {
+    function updateActivityFormFilters({ projectId, fornecedorId, selectedAnalistaId = null, selectedServicoId = null }) {
+        const fornecedorSelect = document.getElementById('fornecedorId');
         const analistaSelect = document.getElementById('analistaId');
         const servicoSelect = document.getElementById('servicoId');
         
         analistaSelect.innerHTML = '<option value="">Selecione...</option>';
         servicoSelect.innerHTML = '<option value="">Selecione...</option>';
 
-        if (!projectId) return;
+        let finalFornecedorId = fornecedorId;
 
-        const projeto = state.projetos.find(p => p.id === projectId);
-        if (!projeto) return;
-        
-        const contrato = state.contratos.find(c => c.id === projeto.contratoId);
-        if (!contrato) return;
+        if (projectId) {
+            const projeto = state.projetos.find(p => p.id === projectId);
+            if (projeto) {
+                const contrato = state.contratos.find(c => c.id === projeto.contratoId);
+                if (contrato) {
+                    finalFornecedorId = contrato.fornecedorId;
+                    fornecedorSelect.value = finalFornecedorId;
+                    fornecedorSelect.disabled = true;
 
-        const filteredAnalistas = state.analistas.filter(a => a.fornecedorId === contrato.fornecedorId);
-        filteredAnalistas.forEach(a => analistaSelect.innerHTML += `<option value="${a.id}" ${a.id === selectedAnalistaId ? 'selected':''}>${a.nome}</option>`);
+                    // Filtra serviços apenas por este contrato
+                    const filteredServicos = state.servicos.filter(s => s.contratoId === contrato.id);
+                    filteredServicos.forEach(s => servicoSelect.innerHTML += `<option value="${s.id}" ${s.id === selectedServicoId ? 'selected':''}>${s.nome}</option>`);
+                }
+            }
+        } else {
+            fornecedorSelect.disabled = false;
+            if(finalFornecedorId) {
+                // Filtra serviços por todos os contratos do fornecedor
+                const contratosDoFornecedor = state.contratos.filter(c => c.fornecedorId === finalFornecedorId);
+                const idsContratos = contratosDoFornecedor.map(c => c.id);
+                const filteredServicos = state.servicos.filter(s => idsContratos.includes(s.contratoId));
+                filteredServicos.forEach(s => servicoSelect.innerHTML += `<option value="${s.id}" ${s.id === selectedServicoId ? 'selected':''}>${s.nome}</option>`);
+            }
+        }
 
-        const filteredServicos = state.servicos.filter(s => s.contratoId === contrato.id);
-        filteredServicos.forEach(s => servicoSelect.innerHTML += `<option value="${s.id}" ${s.id === selectedServicoId ? 'selected':''}>${s.nome}</option>`);
+        if (finalFornecedorId) {
+            const filteredAnalistas = state.analistas.filter(a => a.fornecedorId === finalFornecedorId);
+            filteredAnalistas.forEach(a => analistaSelect.innerHTML += `<option value="${a.id}" ${a.id === selectedAnalistaId ? 'selected':''}>${a.nome}</option>`);
+        }
     }
 
     async function handleSubmit(event, entityName, id) {
