@@ -534,7 +534,7 @@ const firebaseConfig = {
         let color = 'bg-green-500';
         if (percentage > 75) color = 'bg-yellow-500';
         if (percentage >= 100) color = 'bg-red-500';
-        return `<div class="w-full progress-bar-bg rounded-full h-5 relative text-gray-800 font-bold text-xs flex items-center justify-center" title="${text}"><div class="absolute left-0 top-0 h-full rounded-full progress-bar ${color}" style="width: ${Math.min(percentage, 100)}%;"></div><span class="z-10 relative">${percentage}%</span></div>`;
+        return `<div class="w-full progress-bar-bg rounded-full h-5 relative text-gray-800 font-bold text-xs flex items-center justify-center" title="${text}"><div class="absolute left-0 top-0 h-full rounded-full progress-bar ${color}" style="width: ${Math.min(percentage, 100)}%;"></div><span class="z-10 relative">${text}</span></div>`;
     }
 
     // ---------- GESTÃO DE FORMULÁRIOS E DADOS (CRUD) ----------
@@ -585,7 +585,9 @@ const firebaseConfig = {
     function createSelectField(key, label, value, customOptions = null, isRequired = true, extraAttributes = '') {
         let options = [];
         const relationName = key.replace('Id', '');
-        const pluralName = relationName + (relationName.endsWith('s') ? '' : 's');
+        const pluralMap = { fornecedor: 'fornecedores', contrato: 'contratos', projeto: 'projetos', analista: 'analistas', servico: 'servicos', operadora: 'operadoras', setor: 'setores', usuario: 'usuarios' };
+        const pluralName = pluralMap[relationName] || relationName + 's';
+
         if (customOptions) options = customOptions;
         else options = state[pluralName]?.map(item => ({ id: item.id, nome: item.descricao ? `${item.numeroContrato} - ${item.descricao}` : item.nome })) || [];
         
