@@ -817,9 +817,6 @@ const firebaseConfig = {
                 legendHtml += `<div class="flex items-center"><span class="w-4 h-4 rounded-full mr-2" style="background-color: ${color};"></span><span>${nome}: ${count} linhas</span></div>`;
             });
             countLegend.innerHTML = legendHtml;
-            if(!document.getElementById('legend-linhas-setor').classList.contains('hidden')){
-                // Don't hide if it's already visible
-            }
         } else {
              countChart.innerHTML = '<p class="text-center text-gray-500">Nenhuma linha registada.</p>';
              countLegend.classList.add('hidden');
