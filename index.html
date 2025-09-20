@@ -7,6 +7,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body {
             font-family: 'Inter', sans-serif;
@@ -175,7 +176,7 @@
                              <div class="bg-white p-5 rounded-xl shadow-md stat-card transition-transform duration-300"><div class="flex items-center"><div class="bg-yellow-500 text-white rounded-full p-3 mr-4"><i class="fas fa-box-open fa-2x"></i></div><div><p class="text-sm text-gray-500">Linhas Disponíveis</p><p id="stat-disponiveis" class="text-3xl font-bold text-gray-800">0</p></div></div></div>
                         </div>
                         <div class="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-6">
-                            <div class="bg-white p-6 rounded-xl shadow-md"><div class="flex justify-between items-center mb-4"><h3 class="font-bold text-gray-700">Custo de Linhas por Setor</h3><button onclick="toggleLegend('legend-custo-setor')" class="text-gray-500 hover:text-gray-800 text-sm"><i class="fas fa-list-ul mr-1"></i> Legenda</button></div><div id="chart-custo-setor" class="space-y-4"></div><div id="legend-custo-setor" class="mt-4 text-sm space-y-2 hidden border-t pt-4"></div></div>
+                            <div class="bg-white p-6 rounded-xl shadow-md"><div class="flex justify-between items-center mb-4"><h3 class="font-bold text-gray-700">Custo de Linhas por Setor</h3></div><div class="mx-auto w-full max-w-xs"><canvas id="chart-custo-setor"></canvas></div></div>
                             <div class="bg-white p-6 rounded-xl shadow-md"><div class="flex justify-between items-center mb-4"><h3 class="font-bold text-gray-700">Total de Linhas por Setor</h3><button onclick="toggleLegend('legend-linhas-setor')" class="text-gray-500 hover:text-gray-800 text-sm"><i class="fas fa-list-ul mr-1"></i> Legenda</button></div><div id="chart-linhas-setor" class="space-y-4"></div><div id="legend-linhas-setor" class="mt-4 text-sm space-y-2 hidden border-t pt-4"></div></div>
                         </div>
                     </div>
@@ -226,7 +227,7 @@
 <script type="module">
     // ---------- IMPORTS E CONFIGURAÇÃO DO FIREBASE ----------
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import { getFirestore, collection, onSnapshot, addDoc, doc, setDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import { getFirestore, collection, onSnapshot, addDoc, doc, setDoc, deleteDoc, writeBatch } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
     import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 // For Firebase JS SDK v7.20.0 and later, measurementId is optional
@@ -298,6 +299,7 @@ const firebaseConfig = {
     // Variáveis globais da aplicação
     let currentView = 'dashboard-linhas';
     let userId = null;
+    let custoSetorChart = null;
 
     const state = {
         fornecedores: [], contratos: [], projetos: [], analistas: [], atividades: [], servicos: [],
@@ -689,6 +691,9 @@ const firebaseConfig = {
                     const contrato = state.contratos.find(c => c.id === projeto.contratoId);
                     if (contrato) newItem.fornecedorId = contrato.fornecedorId;
                 }
+            } else if (!newItem.projetoId) {
+                 const fornecedorSelect = document.getElementById('fornecedorId');
+                 if(fornecedorSelect) newItem.fornecedorId = fornecedorSelect.value;
             }
         }
         
@@ -771,34 +776,40 @@ const firebaseConfig = {
             costBySector[sectorName] = (costBySector[sectorName] || 0) + (parseFloat(l.custoMensal) || 0);
             countBySector[sectorName] = (countBySector[sectorName] || 0) + 1;
         });
+        
+        const costCtx = document.getElementById('chart-custo-setor').getContext('2d');
+        if (custoSetorChart) custoSetorChart.destroy();
+        if (Object.keys(costBySector).length > 0) {
+            custoSetorChart = new Chart(costCtx, {
+                type: 'pie',
+                data: {
+                    labels: Object.keys(costBySector),
+                    datasets: [{
+                        data: Object.values(costBySector),
+                        backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'],
+                    }]
+                },
+                options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+            });
+        } else {
+             document.getElementById('chart-custo-setor').parentElement.innerHTML += '<p class="text-center text-gray-500">Nenhum custo registado.</p>';
+        }
 
-        const costChart = document.getElementById('chart-custo-setor');
-        const costLegend = document.getElementById('legend-custo-setor');
-        costChart.innerHTML = '';
-        costLegend.innerHTML = '';
-        const maxCost = Math.max(...Object.values(costBySector), 1);
-        let legendHtml = '';
-        const colors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
-        Object.entries(costBySector).sort(([,a],[,b]) => b-a).forEach(([nome, custo], index) => {
-            const color = colors[index % colors.length];
-            costChart.innerHTML += `<div><div class="flex justify-between text-sm text-gray-600"><span>${nome}</span><span>${formatCurrency(custo)}</span></div><div class="w-full bg-gray-200 rounded-full h-2.5 mt-1"><div class="h-2.5 rounded-full" style="width: ${(custo/maxCost*100)}%; background-color: ${color};"></div></div></div>`;
-            legendHtml += `<div class="flex items-center"><span class="w-4 h-4 rounded-full mr-2" style="background-color: ${color};"></span><span>${nome}: ${formatCurrency(custo)}</span></div>`;
-        });
-        costLegend.innerHTML = legendHtml;
-        if (Object.keys(costBySector).length === 0) costChart.innerHTML = '<p class="text-center text-gray-500">Nenhum custo registado.</p>';
 
         const countChart = document.getElementById('chart-linhas-setor');
         const countLegend = document.getElementById('legend-linhas-setor');
         countChart.innerHTML = '';
         countLegend.innerHTML = '';
         const maxCount = Math.max(...Object.values(countBySector), 1);
-        legendHtml = '';
+        let legendHtml = '';
+        const colors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
         Object.entries(countBySector).sort(([,a],[,b]) => b-a).forEach(([nome, count], index) => {
             const color = colors[index % colors.length];
             countChart.innerHTML += `<div><div class="flex justify-between text-sm text-gray-600"><span>${nome}</span><span>${count}</span></div><div class="w-full bg-gray-200 rounded-full h-2.5 mt-1"><div class="h-2.5 rounded-full" style="width: ${(count/maxCount*100)}%; background-color: ${color};"></div></div></div>`;
             legendHtml += `<div class="flex items-center"><span class="w-4 h-4 rounded-full mr-2" style="background-color: ${color};"></span><span>${nome}: ${count} linhas</span></div>`;
         });
         countLegend.innerHTML = legendHtml;
+        countLegend.classList.remove('hidden'); // Mostra a legenda
         if (Object.keys(countBySector).length === 0) countChart.innerHTML = '<p class="text-center text-gray-500">Nenhuma linha registada.</p>';
     }
 
