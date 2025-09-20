@@ -319,6 +319,9 @@ const firebaseConfig = {
     window.updateActivityFormFilters = updateActivityFormFilters;
     window.exportToCSV = exportToCSV;
     window.toggleLegend = toggleLegend;
+    window.showImportModal = showImportModal;
+    window.handleCSVImport = handleCSVImport;
+    window.downloadCSVTemplate = downloadCSVTemplate;
 
     document.addEventListener('DOMContentLoaded', () => {
         setupEventListeners();
@@ -521,8 +524,9 @@ const firebaseConfig = {
              tableHeaders = `<th>Nome</th><th>Contrato</th><th>Status</th><th>Consumo Orçamento</th><th>Consumo Horas</th>`;
         }
 
+        const importButton = entityName === 'linhas' ? `<button onclick="showImportModal()" class="bg-teal-600 text-white px-4 py-2 rounded-lg shadow hover:bg-teal-700 transition duration-300"><i class="fas fa-file-upload mr-2"></i> Importar</button>` : '';
 
-        view.innerHTML = `<div class="flex justify-between items-center mb-6"><h2 class="text-3xl font-bold text-gray-800">${config.title}</h2><div class="flex space-x-2"><button onclick="exportToCSV('${entityName}')" class="bg-green-600 text-white px-4 py-2 rounded-lg shadow hover:bg-green-700 transition duration-300"><i class="fas fa-file-csv mr-2"></i> Exportar</button><button onclick="showForm('${entityName}')" class="bg-blue-600 text-white px-4 py-2 rounded-lg shadow hover:bg-blue-700 transition duration-300"><i class="fas fa-plus mr-2"></i> Adicionar</button></div></div><div class="bg-white rounded-xl shadow overflow-x-auto"><table class="w-full table-auto"><thead class="bg-gray-50 border-b-2 border-gray-200"><tr>${tableHeaders}<th>Ações</th></tr></thead><tbody id="${entityName}-table-body"></tbody></table></div>`;
+        view.innerHTML = `<div class="flex justify-between items-center mb-6"><h2 class="text-3xl font-bold text-gray-800">${config.title}</h2><div class="flex space-x-2">${importButton}<button onclick="exportToCSV('${entityName}')" class="bg-green-600 text-white px-4 py-2 rounded-lg shadow hover:bg-green-700 transition duration-300"><i class="fas fa-file-csv mr-2"></i> Exportar</button><button onclick="showForm('${entityName}')" class="bg-blue-600 text-white px-4 py-2 rounded-lg shadow hover:bg-blue-700 transition duration-300"><i class="fas fa-plus mr-2"></i> Adicionar</button></div></div><div class="bg-white rounded-xl shadow overflow-x-auto"><table class="w-full table-auto"><thead class="bg-gray-50 border-b-2 border-gray-200"><tr>${tableHeaders}<th>Ações</th></tr></thead><tbody id="${entityName}-table-body"></tbody></table></div>`;
         const tableBody = document.getElementById(`${entityName}-table-body`);
         tableBody.innerHTML = '';
         state[entityName].forEach(item => {
@@ -604,7 +608,7 @@ const firebaseConfig = {
         else options = state[pluralName]?.map(item => ({ id: item.id, nome: item.descricao ? `${item.numeroContrato} - ${item.descricao}` : item.nome })) || [];
         
         const optionsHtml = options.map(o => `<option value="${o.id}" ${o.id === value ? 'selected' : ''}>${o.nome}</option>`).join('');
-        return `<div><label for="${key}" class="block text-sm font-medium text-gray-700">${label}</label><select id="${key}" name="${key}" ${isRequired ? 'required' : ''} ${extraAttributes} class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"><option value="">Selecione...</option>${optionsHtml}</select></div>`;
+        return `<div><label for="${id}" class="block text-sm font-medium text-gray-700">${label}</label><select id="${key}" name="${key}" ${isRequired ? 'required' : ''} ${extraAttributes} class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"><option value="">Selecione...</option>${optionsHtml}</select></div>`;
     }
 
     function handleTipoContratoChange(selectedValue) {
@@ -792,7 +796,8 @@ const firebaseConfig = {
                 options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
             });
         } else {
-             document.getElementById('chart-custo-setor').parentElement.innerHTML += '<p class="text-center text-gray-500">Nenhum custo registado.</p>';
+             const chartContainer = document.getElementById('chart-custo-setor').parentElement;
+             chartContainer.innerHTML = '<h3 class="font-bold text-gray-700 mb-4">Custo de Linhas por Setor</h3><p class="text-center text-gray-500">Nenhum custo registado.</p>';
         }
 
 
@@ -803,14 +808,19 @@ const firebaseConfig = {
         const maxCount = Math.max(...Object.values(countBySector), 1);
         let legendHtml = '';
         const colors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
-        Object.entries(countBySector).sort(([,a],[,b]) => b-a).forEach(([nome, count], index) => {
-            const color = colors[index % colors.length];
-            countChart.innerHTML += `<div><div class="flex justify-between text-sm text-gray-600"><span>${nome}</span><span>${count}</span></div><div class="w-full bg-gray-200 rounded-full h-2.5 mt-1"><div class="h-2.5 rounded-full" style="width: ${(count/maxCount*100)}%; background-color: ${color};"></div></div></div>`;
-            legendHtml += `<div class="flex items-center"><span class="w-4 h-4 rounded-full mr-2" style="background-color: ${color};"></span><span>${nome}: ${count} linhas</span></div>`;
-        });
-        countLegend.innerHTML = legendHtml;
-        countLegend.classList.remove('hidden'); // Mostra a legenda
-        if (Object.keys(countBySector).length === 0) countChart.innerHTML = '<p class="text-center text-gray-500">Nenhuma linha registada.</p>';
+        const sortedSectors = Object.entries(countBySector).sort(([,a],[,b]) => b-a);
+        
+        if (sortedSectors.length > 0) {
+            sortedSectors.forEach(([nome, count], index) => {
+                const color = colors[index % colors.length];
+                countChart.innerHTML += `<div><div class="flex justify-between text-sm text-gray-600"><span>${nome}</span><span>${count}</span></div><div class="w-full bg-gray-200 rounded-full h-2.5 mt-1"><div class="h-2.5 rounded-full" style="width: ${(count/maxCount*100)}%; background-color: ${color};"></div></div></div>`;
+                legendHtml += `<div class="flex items-center"><span class="w-4 h-4 rounded-full mr-2" style="background-color: ${color};"></span><span>${nome}: ${count} linhas</span></div>`;
+            });
+            countLegend.innerHTML = legendHtml;
+        } else {
+             countChart.innerHTML = '<p class="text-center text-gray-500">Nenhuma linha registada.</p>';
+             countLegend.classList.add('hidden');
+        }
     }
 
     function renderDashboardTI(range = 'currentMonth') {
@@ -986,6 +996,111 @@ const firebaseConfig = {
             legend.classList.toggle('hidden');
         }
     }
+
+    // ---------- IMPORTAÇÃO DE CSV ----------
+    function showImportModal() {
+        const formHtml = `
+            <div class="space-y-4">
+                <p class="text-sm text-gray-600">Para importar novas linhas, siga estes passos:</p>
+                <ol class="list-decimal list-inside space-y-2 text-sm">
+                    <li>Faça o download do nosso modelo CSV.</li>
+                    <li>Preencha o ficheiro com os seus dados. Os nomes de <strong>Usuário, Setor e Operadora</strong> devem corresponder exatamente aos que já estão registados na aplicação.</li>
+                    <li>Envie o ficheiro preenchido.</li>
+                </ol>
+                <a href="#" onclick="downloadCSVTemplate()" class="text-blue-600 hover:underline font-semibold"><i class="fas fa-download mr-2"></i>Download do Modelo CSV</a>
+                <form onsubmit="handleCSVImport(event)" class="mt-4">
+                    <div>
+                        <label for="csvFile" class="block text-sm font-medium text-gray-700">Ficheiro CSV</label>
+                        <input type="file" id="csvFile" name="csvFile" accept=".csv" required class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"/>
+                    </div>
+                    <div class="mt-8 flex justify-end">
+                        <button type="button" onclick="closeModal()" class="mr-3 bg-gray-200 text-gray-800 px-5 py-2 rounded-lg hover:bg-gray-300">Cancelar</button>
+                        <button type="submit" class="bg-teal-600 text-white px-5 py-2 rounded-lg hover:bg-teal-700">Importar</button>
+                    </div>
+                </form>
+            </div>
+        `;
+        openModal("Importar Linhas de Celular", formHtml);
+    }
+
+    function downloadCSVTemplate() {
+        const headers = ["numero", "usuario", "setor", "operadora", "custoMensal", "dataRenovacao", "status"];
+        const csvString = headers.join(',');
+        const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement("a");
+        const url = URL.createObjectURL(blob);
+        link.setAttribute("href", url);
+        link.setAttribute("download", "template_linhas.csv");
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+
+    async function handleCSVImport(event) {
+        event.preventDefault();
+        const fileInput = document.getElementById('csvFile');
+        if (fileInput.files.length === 0) {
+            alert("Por favor, selecione um ficheiro.");
+            return;
+        }
+        
+        const actionLoading = document.getElementById('action-loading-overlay');
+        actionLoading.classList.remove('hidden');
+        
+        const file = fileInput.files[0];
+        const reader = new FileReader();
+        
+        reader.onload = async function(e) {
+            const text = e.target.result;
+            const rows = text.split('\n').slice(1); // Remove cabeçalho
+            const batch = writeBatch(db);
+            let successCount = 0;
+            let errorCount = 0;
+
+            for (const row of rows) {
+                if (!row.trim()) continue;
+
+                const [numero, usuarioNome, setorNome, operadoraNome, custoMensal, dataRenovacao, status] = row.split(',').map(s => s.trim());
+                
+                const usuario = state.usuarios.find(u => u.nome.toLowerCase() === usuarioNome.toLowerCase());
+                const setor = state.setores.find(s => s.nome.toLowerCase() === setorNome.toLowerCase());
+                const operadora = state.operadoras.find(o => o.nome.toLowerCase() === operadoraNome.toLowerCase());
+
+                if (numero && usuario && setor && operadora && custoMensal && dataRenovacao && status) {
+                    const newLinha = {
+                        numero,
+                        usuarioId: usuario.id,
+                        setorId: setor.id,
+                        operadoraId: operadora.id,
+                        custoMensal,
+                        dataRenovacao,
+                        status
+                    };
+                    const newDocRef = doc(collection(db, `users/${userId}/linhas`));
+                    batch.set(newDocRef, newLinha);
+                    successCount++;
+                } else {
+                    errorCount++;
+                    console.warn("Linha ignorada por dados inválidos ou não encontrados:", row);
+                }
+            }
+            
+            try {
+                await batch.commit();
+                alert(`${successCount} linhas importadas com sucesso.\n${errorCount} linhas falharam por dados inconsistentes.`);
+            } catch (error) {
+                alert("Ocorreu um erro ao salvar os dados importados.");
+                console.error("Erro na importação:", error);
+            } finally {
+                actionLoading.classList.add('hidden');
+                closeModal();
+            }
+        };
+        
+        reader.readAsText(file);
+    }
+
 </script>
 </body>
 </html>
