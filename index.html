@@ -817,6 +817,9 @@ const firebaseConfig = {
                 legendHtml += `<div class="flex items-center"><span class="w-4 h-4 rounded-full mr-2" style="background-color: ${color};"></span><span>${nome}: ${count} linhas</span></div>`;
             });
             countLegend.innerHTML = legendHtml;
+            if(!document.getElementById('legend-linhas-setor').classList.contains('hidden')){
+                // Don't hide if it's already visible
+            }
         } else {
              countChart.innerHTML = '<p class="text-center text-gray-500">Nenhuma linha registada.</p>';
              countLegend.classList.add('hidden');
@@ -1052,45 +1055,59 @@ const firebaseConfig = {
         const reader = new FileReader();
         
         reader.onload = async function(e) {
-            const text = e.target.result;
-            const rows = text.split('\n').slice(1); // Remove cabeçalho
-            const batch = writeBatch(db);
-            let successCount = 0;
-            let errorCount = 0;
-
-            for (const row of rows) {
-                if (!row.trim()) continue;
-
-                const [numero, usuarioNome, setorNome, operadoraNome, custoMensal, dataRenovacao, status] = row.split(',').map(s => s.trim());
-                
-                const usuario = state.usuarios.find(u => u.nome.toLowerCase() === usuarioNome.toLowerCase());
-                const setor = state.setores.find(s => s.nome.toLowerCase() === setorNome.toLowerCase());
-                const operadora = state.operadoras.find(o => o.nome.toLowerCase() === operadoraNome.toLowerCase());
-
-                if (numero && usuario && setor && operadora && custoMensal && dataRenovacao && status) {
-                    const newLinha = {
-                        numero,
-                        usuarioId: usuario.id,
-                        setorId: setor.id,
-                        operadoraId: operadora.id,
-                        custoMensal,
-                        dataRenovacao,
-                        status
-                    };
-                    const newDocRef = doc(collection(db, `users/${userId}/linhas`));
-                    batch.set(newDocRef, newLinha);
-                    successCount++;
-                } else {
-                    errorCount++;
-                    console.warn("Linha ignorada por dados inválidos ou não encontrados:", row);
-                }
-            }
-            
             try {
+                const text = e.target.result;
+                const rows = text.split('\n').slice(1); // Remove cabeçalho
+                const batch = writeBatch(db);
+                let successCount = 0;
+                let errorCount = 0;
+                let errorMessages = [];
+
+                for (const [index, row] of rows.entries()) {
+                    if (!row.trim()) continue;
+
+                    const columns = row.split(',').map(s => s.trim());
+                    if (columns.length !== 7) {
+                        errorCount++;
+                        errorMessages.push(`Linha ${index + 2}: Formato inválido.`);
+                        continue;
+                    }
+
+                    const [numero, usuarioNome, setorNome, operadoraNome, custoMensal, dataRenovacao, status] = columns;
+                    
+                    const usuario = state.usuarios.find(u => u.nome.toLowerCase() === usuarioNome.toLowerCase());
+                    const setor = state.setores.find(s => s.nome.toLowerCase() === setorNome.toLowerCase());
+                    const operadora = state.operadoras.find(o => o.nome.toLowerCase() === operadoraNome.toLowerCase());
+
+                    if (numero && usuario && setor && operadora && custoMensal && dataRenovacao && status) {
+                        const newLinha = {
+                            numero,
+                            usuarioId: usuario.id,
+                            setorId: setor.id,
+                            operadoraId: operadora.id,
+                            custoMensal,
+                            dataRenovacao,
+                            status
+                        };
+                        const newDocRef = doc(collection(db, `users/${userId}/linhas`));
+                        batch.set(newDocRef, newLinha);
+                        successCount++;
+                    } else {
+                        errorCount++;
+                        errorMessages.push(`Linha ${index + 2}: Dados não encontrados (verifique se Usuário, Setor e Operadora existem).`);
+                        console.warn("Linha ignorada:", row);
+                    }
+                }
+                
                 await batch.commit();
-                alert(`${successCount} linhas importadas com sucesso.\n${errorCount} linhas falharam por dados inconsistentes.`);
+                let summary = `${successCount} linhas importadas com sucesso.\n`;
+                if(errorCount > 0) {
+                    summary += `${errorCount} linhas falharam.\n\nPrimeiros erros:\n${errorMessages.slice(0, 5).join('\n')}`;
+                }
+                alert(summary);
+
             } catch (error) {
-                alert("Ocorreu um erro ao salvar os dados importados.");
+                alert("Ocorreu um erro ao processar o ficheiro.");
                 console.error("Erro na importação:", error);
             } finally {
                 actionLoading.classList.add('hidden');
