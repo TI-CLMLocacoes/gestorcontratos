@@ -778,8 +778,11 @@ const firebaseConfig = {
             countBySector[sectorName] = (countBySector[sectorName] || 0) + 1;
         });
         
+        const costChartWrapper = document.getElementById('chart-custo-setor-wrapper');
+        costChartWrapper.innerHTML = '<canvas id="chart-custo-setor"></canvas>'; // Recria o canvas
         const costCtx = document.getElementById('chart-custo-setor').getContext('2d');
         if (custoSetorChart) custoSetorChart.destroy();
+        
         if (Object.keys(costBySector).length > 0) {
             custoSetorChart = new Chart(costCtx, {
                 type: 'pie',
@@ -793,8 +796,7 @@ const firebaseConfig = {
                 options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
             });
         } else {
-             const chartContainer = document.getElementById('chart-custo-setor').parentElement;
-             chartContainer.innerHTML = '<h3 class="font-bold text-gray-700 mb-4">Custo de Linhas por Setor</h3><p class="text-center text-gray-500">Nenhum custo registado.</p>';
+             costChartWrapper.innerHTML = '<p class="text-center text-gray-500 pt-16">Nenhum custo registado.</p>';
         }
 
 
