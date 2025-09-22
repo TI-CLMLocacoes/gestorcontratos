@@ -51,6 +51,12 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
+        #gemini-spinner {
+            display: none;
+            width: 16px;
+            height: 16px;
+            border-width: 2px;
+        }
     </style>
 </head>
 <body class="bg-gray-100">
@@ -322,6 +328,7 @@ const firebaseConfig = {
     window.showImportModal = showImportModal;
     window.handleCSVImport = handleCSVImport;
     window.downloadCSVTemplate = downloadCSVTemplate;
+    window.callGemini = callGemini;
 
     document.addEventListener('DOMContentLoaded', () => {
         setupEventListeners();
@@ -575,7 +582,23 @@ const firebaseConfig = {
             return createInputField('text', key, label, value, isRequired);
         }).join('');
 
-        const formHtml = `<form onsubmit="handleSubmit(event, '${entityName}', ${isEditing ? `'${id}'` : 'null'})"><div class="space-y-4">${formFieldsHtml}</div><div class="mt-8 flex justify-end"><button type="button" onclick="closeModal()" class="mr-3 bg-gray-200 text-gray-800 px-5 py-2 rounded-lg hover:bg-gray-300">Cancelar</button><button type="submit" class="bg-blue-600 text-white px-5 py-2 rounded-lg hover:bg-blue-700">${isEditing ? 'Salvar Alterações' : 'Criar'}</button></div></form>`;
+        if (entityName === 'atividades') {
+            const aiHelper = `
+                <div class="md:col-span-2">
+                    <label for="ai-keywords" class="block text-sm font-medium text-gray-700">Palavras-chave para IA</label>
+                    <div class="mt-1 flex rounded-md shadow-sm">
+                        <input type="text" id="ai-keywords" class="flex-1 block w-full rounded-none rounded-l-md px-3 py-2 border-gray-300 focus:ring-indigo-500 focus:border-indigo-500" placeholder="Ex: reunião de alinhamento, correção de bug">
+                        <button type="button" onclick="callGemini()" class="inline-flex items-center px-3 rounded-r-md border border-l-0 border-gray-300 bg-gray-50 text-gray-500 hover:bg-gray-100">
+                            <span class="mr-2">✨ Gerar Descrição</span>
+                            <div id="gemini-spinner" class="spinner"></div>
+                        </button>
+                    </div>
+                </div>
+            `;
+            formFieldsHtml = formFieldsHtml.replace(createInputField('text', 'descricao', 'Descrição'), aiHelper + createInputField('text', 'descricao', 'Descrição'));
+        }
+
+        const formHtml = `<form onsubmit="handleSubmit(event, '${entityName}', ${isEditing ? `'${id}'` : 'null'})"><div class="grid grid-cols-1 md:grid-cols-2 gap-4">${formFieldsHtml}</div><div class="mt-8 flex justify-end"><button type="button" onclick="closeModal()" class="mr-3 bg-gray-200 text-gray-800 px-5 py-2 rounded-lg hover:bg-gray-300">Cancelar</button><button type="submit" class="bg-blue-600 text-white px-5 py-2 rounded-lg hover:bg-blue-700">${isEditing ? 'Salvar Alterações' : 'Criar'}</button></div></form>`;
         
         openModal(`${isEditing ? 'Editar' : 'Adicionar'} ${config.title}`, formHtml);
 
@@ -595,7 +618,8 @@ const firebaseConfig = {
     }
 
     function createInputField(type, id, label, value, isRequired = true) {
-        return `<div><label for="${id}" class="block text-sm font-medium text-gray-700">${label}</label><input type="${type}" id="${id}" name="${id}" value="${value}" ${type === 'number' ? 'step="0.01"' : ''} ${isRequired ? 'required' : ''} class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"></div>`;
+        const fullWidth = id === 'descricao' ? 'md:col-span-2' : '';
+        return `<div class="${fullWidth}"><label for="${id}" class="block text-sm font-medium text-gray-700">${label}</label><input type="${type}" id="${id}" name="${id}" value="${value}" ${type === 'number' ? 'step="0.01"' : ''} ${isRequired ? 'required' : ''} class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"></div>`;
     }
 
     function createSelectField(key, label, value, customOptions = null, isRequired = true, extraAttributes = '') {
@@ -1118,6 +1142,57 @@ const firebaseConfig = {
         };
         
         reader.readAsText(file, "UTF-8");
+    }
+    
+    // ---------- FUNCIONALIDADE DE IA (GEMINI) ----------
+    async function callGemini() {
+        const keywords = document.getElementById('ai-keywords').value;
+        if (!keywords.trim()) {
+            alert('Por favor, insira algumas palavras-chave para a IA.');
+            return;
+        }
+        
+        const spinner = document.getElementById('gemini-spinner');
+        spinner.style.display = 'inline-block';
+
+        const systemPrompt = "Aja como um gestor de projetos de TI. Com base nas seguintes palavras-chave, escreva uma descrição profissional e concisa para uma atividade de trabalho. A resposta deve ter no máximo 2 frases e ser direta.";
+        const userQuery = `Palavras-chave: ${keywords}`;
+        const apiKey = ""; // Deixar em branco para usar a API do ambiente
+        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+
+        const payload = {
+            contents: [{ parts: [{ text: userQuery }] }],
+            systemInstruction: {
+                parts: [{ text: systemPrompt }]
+            },
+        };
+
+        try {
+            const response = await fetch(apiUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (!response.ok) {
+                throw new Error(`API Error: ${response.status}`);
+            }
+
+            const result = await response.json();
+            const candidate = result.candidates?.[0];
+            const text = candidate?.content?.parts?.[0]?.text;
+
+            if (text) {
+                document.getElementById('descricao').value = text;
+            } else {
+                throw new Error("Resposta da IA inválida.");
+            }
+        } catch (error) {
+            console.error("Erro ao chamar a API Gemini:", error);
+            alert("Não foi possível gerar a descrição. Verifique a sua conexão ou tente novamente.");
+        } finally {
+            spinner.style.display = 'none';
+        }
     }
 
 </script>
