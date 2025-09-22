@@ -1004,8 +1004,8 @@ const firebaseConfig = {
                 <p class="text-sm text-gray-600">Para importar novas linhas, siga estes passos:</p>
                 <ol class="list-decimal list-inside space-y-2 text-sm">
                     <li>Faça o download do nosso modelo CSV.</li>
-                    <li>Preencha o ficheiro com os seus dados. Os nomes de <strong>Usuário, Setor e Operadora</strong> devem corresponder exatamente aos que já estão registados na aplicação.</li>
-                    <li>Envie o ficheiro preenchido.</li>
+                    <li>Preencha o ficheiro com os seus dados. A coluna <strong>numero</strong> é a única obrigatória.</li>
+                    <li>Para as colunas <strong>usuario, setor e operadora</strong>, os nomes devem corresponder aos que já estão registados na aplicação para serem vinculados automaticamente. Se um nome não for encontrado ou o campo estiver vazio, a linha será importada e poderá preencher o dado manualmente mais tarde.</li>
                 </ol>
                 <a href="#" onclick="downloadCSVTemplate()" class="text-blue-600 hover:underline font-semibold"><i class="fas fa-download mr-2"></i>Download do Modelo CSV</a>
                 <form onsubmit="handleCSVImport(event)" class="mt-4">
@@ -1063,37 +1063,34 @@ const firebaseConfig = {
                 for (const [index, row] of rows.entries()) {
                     if (!row.trim()) continue;
 
-                    const columns = row.split(',').map(s => s.trim());
-                    if (columns.length !== 7) {
+                    const columns = row.split(',').map(s => s.trim().replace(/"/g, ''));
+                    
+                    const numero = columns[0];
+                    if (!numero) {
                         errorCount++;
-                        errorMessages.push(`Linha ${index + 2}: Formato inválido.`);
+                        errorMessages.push(`Linha ${index + 2}: Número da linha é obrigatório.`);
                         continue;
                     }
-
-                    const [numero, usuarioNome, setorNome, operadoraNome, custoMensal, dataRenovacao, status] = columns;
                     
-                    const usuario = state.usuarios.find(u => u.nome.toLowerCase() === usuarioNome.toLowerCase());
-                    const setor = state.setores.find(s => s.nome.toLowerCase() === setorNome.toLowerCase());
-                    const operadora = state.operadoras.find(o => o.nome.toLowerCase() === operadoraNome.toLowerCase());
+                    const [ , usuarioNome, setorNome, operadoraNome, custoMensal, dataRenovacao, status] = columns;
+                    
+                    const usuario = state.usuarios.find(u => u.nome.toLowerCase() === (usuarioNome || '').toLowerCase());
+                    const setor = state.setores.find(s => s.nome.toLowerCase() === (setorNome || '').toLowerCase());
+                    const operadora = state.operadoras.find(o => o.nome.toLowerCase() === (operadoraNome || '').toLowerCase());
 
-                    if (numero && usuario && setor && operadora && custoMensal && dataRenovacao && status) {
-                        const newLinha = {
-                            numero,
-                            usuarioId: usuario.id,
-                            setorId: setor.id,
-                            operadoraId: operadora.id,
-                            custoMensal,
-                            dataRenovacao,
-                            status
-                        };
-                        const newDocRef = doc(collection(db, `users/${userId}/linhas`));
-                        batch.set(newDocRef, newLinha);
-                        successCount++;
-                    } else {
-                        errorCount++;
-                        errorMessages.push(`Linha ${index + 2}: Dados não encontrados (verifique se Usuário, Setor e Operadora existem).`);
-                        console.warn("Linha ignorada:", row);
-                    }
+                    const newLinha = {
+                        numero: numero || '',
+                        usuarioId: usuario ? usuario.id : '',
+                        setorId: setor ? setor.id : '',
+                        operadoraId: operadora ? operadora.id : '',
+                        custoMensal: custoMensal || '',
+                        dataRenovacao: dataRenovacao || '',
+                        status: status || 'Disponível'
+                    };
+
+                    const newDocRef = doc(collection(db, `users/${userId}/linhas`));
+                    batch.set(newDocRef, newLinha);
+                    successCount++;
                 }
                 
                 await batch.commit();
@@ -1112,7 +1109,7 @@ const firebaseConfig = {
             }
         };
         
-        reader.readAsText(file);
+        reader.readAsText(file, "UTF-8");
     }
 
 </script>
