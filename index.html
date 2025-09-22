@@ -318,7 +318,7 @@ const firebaseConfig = {
             const userProfileRef = doc(db, "users", userId);
             const userProfileSnap = await getDoc(userProfileRef);
 
-            if (userProfileSnap.exists()) {
+            if (userProfileSnap.exists() && userProfileSnap.data().organizationId) {
                 const userProfile = userProfileSnap.data();
                 state.organizationId = userProfile.organizationId;
                 state.userRole = userProfile.role;
@@ -335,10 +335,10 @@ const firebaseConfig = {
                 
                 loadAllData();
             } else {
-                 const legacyDataCheckRef = doc(db, `users/${userId}/contratos`); // Verifica uma coleção antiga
-                 const legacyDataSnap = await getDoc(legacyDataCheckRef);
+                 const legacyDataCheckRef = collection(db, `users/${userId}/contratos`); // Verifica uma coleção antiga
+                 const legacyDataSnap = await getDocs(legacyDataCheckRef);
 
-                if(legacyDataSnap.exists()){
+                if(!legacyDataSnap.empty){
                      document.getElementById('migration-prompt').classList.remove('hidden');
                 }
 
